@@ -103,12 +103,61 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const btnReload = document.getElementById("btnReload");
-  if (btnReload) btnReload.onclick = () => loadData();
+  if (btnReload)
+    btnReload.onclick = () => {
+      state.page = 1;
+      loadData();
+    };
 
   await loadData();
 });
 
 let rolesMaster = [];
+
+const state = {
+  page: 1,
+  limit: 10, // mỗi trang 10 user (đổi 20/50 tùy)
+  total: 0,
+};
+
+function getPageList(page, totalPages) {
+  // Hiện tối đa 100 trang đầu; nếu nhiều hơn thì có "..." + trang cuối
+  const maxShow = 100;
+  const showPages = Math.min(totalPages, maxShow);
+  const pages = [];
+  for (let i = 1; i <= showPages; i++) pages.push(i);
+  if (totalPages > maxShow) pages.push("...", totalPages);
+  return pages;
+}
+
+function renderPager() {
+  const pager = document.getElementById("pager");
+  if (!pager) return;
+
+  const totalPages = Math.max(1, Math.ceil(state.total / state.limit));
+  state.page = Math.min(Math.max(1, state.page), totalPages);
+
+  const pages = getPageList(state.page, totalPages);
+
+  pager.innerHTML = `
+    <button ${state.page === 1 ? "disabled" : ""} data-p="${state.page - 1}">‹</button>
+    ${pages
+      .map((p) =>
+        p === "..."
+          ? `<span class="dots">…</span>`
+          : `<button data-p="${p}" class="${p === state.page ? "active" : ""}">${p}</button>`,
+      )
+      .join("")}
+    <button ${state.page === totalPages ? "disabled" : ""} data-p="${state.page + 1}">›</button>
+  `;
+
+  pager.querySelectorAll("button[data-p]").forEach((btn) => {
+    btn.onclick = () => {
+      state.page = Number(btn.dataset.p);
+      loadData();
+    };
+  });
+}
 
 async function loadData() {
   const msg = document.getElementById("msg");
@@ -119,17 +168,24 @@ async function loadData() {
 
   try {
     rolesMaster = await api("/api/admin/roles");
-    const users = await api("/api/admin/users");
+    const usersAll = await api("/api/admin/users"); // vẫn lấy full
+
+    state.total = usersAll.length;
 
     const totalUsers = document.getElementById("totalUsers");
     const pendingUsers = document.getElementById("pendingUsers");
-    if (totalUsers) totalUsers.textContent = users.length;
+    if (totalUsers) totalUsers.textContent = state.total;
     if (pendingUsers)
-      pendingUsers.textContent = users.filter(
+      pendingUsers.textContent = usersAll.filter(
         (u) => u.trang_thai === "cho_duyet",
       ).length;
 
-    renderTable(users);
+    // cắt dữ liệu theo trang
+    const start = (state.page - 1) * state.limit;
+    const pageItems = usersAll.slice(start, start + state.limit);
+
+    renderTable(pageItems);
+    renderPager();
   } catch (e) {
     if (msg) {
       msg.className = "msg show";
@@ -161,7 +217,7 @@ function renderTable(users) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${idx + 1}</td>
+      <td>${(state.page - 1) * state.limit + idx + 1}</td>
       <td><b>${u.ho_ten || ""}</b></td>
       <td>${u.email || ""}</td>
       <td><select data-id="${u.id}" class="selRole">${roleOptions}</select></td>

@@ -260,3 +260,37 @@ select {
 .resource-table {
   min-width: 1450px;
 }
+/* =========================
+   PAGER (pagination)
+========================= */
+.pager {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.pager button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.pager button.active {
+  background: var(--green2);
+  color: #fff;
+  border-color: var(--green2);
+}
+.pager button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pager .dots {
+  padding: 7px 6px;
+  color: var(--muted);
+  font-weight: 900;
+}

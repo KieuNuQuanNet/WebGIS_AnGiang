@@ -450,6 +450,7 @@ app.get(
     const items = Object.keys(LAYER_META).map((layer) => ({
       layer,
       table: LAYER_META[layer].table,
+      label: LAYER_META[layer].label || layer,
     }));
     res.json(items);
   },
@@ -839,13 +840,16 @@ app.patch(
 );
 // Layer -> Postgres table (chỉ cho phép các bảng này)
 const LAYER_META = {
-  "webgis_angiang:rung": { table: "rung" },
-  "webgis_angiang:dat": { table: "dat" },
-  "webgis_angiang:khoangsan_diem_mo": { table: "khoangsan_diem_mo" },
-  "webgis_angiang:thucvat_ag": { table: "thucvat_ag" },
-  "webgis_angiang:dongvat_ag": { table: "dongvat_ag" },
-  "webgis_angiang:waterways": { table: "waterways" },
-  "webgis_angiang:go": { table: "go" },
+  "webgis_angiang:rung": { table: "rung", label: "Rừng" },
+  "webgis_angiang:dat": { table: "dat", label: "Đất" },
+  "webgis_angiang:khoangsan_diem_mo": {
+    table: "khoangsan_diem_mo",
+    label: "Khoáng sản (điểm mỏ)",
+  },
+  "webgis_angiang:thucvat_ag": { table: "thucvat_ag", label: "Thực vật (AG)" },
+  "webgis_angiang:dongvat_ag": { table: "dongvat_ag", label: "Động vật (AG)" },
+  "webgis_angiang:waterways": { table: "waterways", label: "Sông ngòi" },
+  "webgis_angiang:go": { table: "go", label: "Gỗ" },
 };
 
 // Tự chọn “cột tên” để hiển thị (nếu bảng nào có)

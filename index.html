@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGIS An Giang - Đa nền tảng bản đồ</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <a href="index.html"
+          ><img src="images/logo.jpg" alt="Logo" class="brand-logo"
+        /></a>
+        Tài Nguyên Thiên Nhiên An Giang
+      </div>
+      <div class="navbar-search">
+        <div class="search-group">
+          <input
+            type="text"
+            id="inpSearch"
+            placeholder="Tìm sinh vật (VD: Voi, Trăn)..."
+            autocomplete="off"
+          />
+          <button id="btnSearch">🔍</button>
+        </div>
+        <!-- Kết quả sổ xuống -->
+        <div id="searchResults" class="search-results hidden"></div>
+      </div>
+      <div class="navbar-menu">
+        <span id="navUser" style="margin-right: 10px; display: none"></span>
+        <a id="navAuth" href="login.html">Đăng nhập</a>
+        <a id="navAdminUsers" href="admin_users.html" style="display: none"
+          >Quản lý tài khoản</a
+        >
+      </div>
+    </nav>
+    <div id="map"></div>
+
+    <!-- CÁC NÚT CÔNG CỤ (Nút Thêm và Nút Truy Vấn) -->
+    <div class="toolbar-container">
+      <div class="tool-group">
+        <button
+          id="btnThemTaiNguyen"
+          class="tool-btn btn-add"
+          title="Thêm tài nguyên"
+          data-perm="feature.insert"
+        >
+          +
+        </button>
+        <!-- Danh sách thêm tài nguyên -->
+        <div
+          id="danhSachTaiNguyen"
+          class="resource-list hidden"
+          data-perm="feature.insert"
+        >
+          <h4>Chọn loại cần thêm:</h4>
+          <ul id="danhSachLoaiTaiNguyen">
+            <li
+              class="resource-item"
+              data-loai="polygon"
+              data-ten="Tài nguyên Rừng"
+            >
+              Tài nguyên Rừng
+            </li>
+            <li
+              class="resource-item"
+              data-loai="polygon"
+              data-ten="Tài nguyên Đất"
+            >
+              Tài nguyên Đất
+            </li>
+            <li
+              class="resource-item"
+              data-loai="polyline"
+              data-ten="Tài nguyên Nước"
+            >
+              Tài nguyên Nước
+            </li>
+            <li
+              class="resource-item"
+              data-loai="point"
+              data-ten="Mỏ khoáng sản"
+            >
+              Mỏ khoáng sản
+            </li>
+            <li
+              class="resource-item"
+              data-loai="point"
+              data-ten="Tài nguyên Động vật"
+            >
+              Tài nguyên Động vật
+            </li>
+            <li
+              class="resource-item"
+              data-loai="point"
+              data-ten="Tài nguyên Thực vật"
+            >
+              Tài nguyên Thực vật
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <button
+        id="btnMoTruyVan"
+        class="tool-btn btn-query"
+        title="Truy vấn dữ liệu"
+      >
+        🔍
+      </button>
+      <!-- Cụm Nút Thống Kê -->
+      <div class="tool-group">
+        <button
+          id="btnThongKe"
+          class="tool-btn btn-stats"
+          title="Xem biểu đồ phân tích"
+          data-perm="stats.view"
+        >
+          📊
+        </button>
+        <div
+          id="danhSachThongKe"
+          class="resource-list hidden"
+          data-perm="stats.view"
+        >
+          <h4>Thống kê theo lớp:</h4>
+          <ul>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:khoangsan_diem_mo"
+              data-ten="Mỏ khoáng sản"
+            >
+              Khoáng sản
+            </li>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:rung"
+              data-ten="Tài nguyên Rừng"
+            >
+              Rừng
+            </li>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:dongvat"
+              data-ten="Động vật hoang dã"
+            >
+              Động vật
+            </li>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:thucvat"
+              data-ten="Thực vật quý hiếm"
+            >
+              Thực vật
+            </li>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:dat"
+              data-ten="Tài nguyên Đất"
+            >
+              Đất
+            </li>
+            <li
+              class="stat-select-item"
+              data-lop="angiang:waterways"
+              data-ten="Tài nguyên Nước"
+            >
+              Nước
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- BẢNG TRUY VẤN (Mặc định ẩn) -->
+    <div class="query-panel hidden" id="bangTruyVan">
+      <div class="query-header">
+        <h3>Bảng Truy Vấn Dữ Liệu</h3>
+        <button class="btn-close" id="btnDongTruyVan">✖</button>
+      </div>
+
+      <div class="query-tabs">
+        <button class="tab-btn active" data-target="tabDieuKien">
+          Truy vấn
+        </button>
+        <button class="tab-btn" data-target="tabKetQua">
+          Kết quả (<span id="txtCount">0</span>)
+        </button>
+      </div>
+
+      <!-- TAB 1: NHẬP ĐIỀU KIỆN LỌC -->
+      <div class="tab-content active" id="tabDieuKien">
+        <div class="form-group">
+          <label>CHỌN LỚP DỮ LIỆU</label>
+          <select class="form-control" id="cboLopDuLieu">
+            <option value="angiang:khoangsan_diem_mo">Mỏ Khoáng Sản</option>
+            <option value="angiang:rung">Tài Nguyên Rừng</option>
+            <option value="angiang:dat">Tài Nguyên Đất</option>
+            <option value="angiang:waterways">Tài Nguyên Nước</option>
+            <option value="angiang:dongvat">Động Vật Hoang Dã</option>
+            <option value="angiang:thucvat">Thực Vật Quý Hiếm</option>
+          </select>
+        </div>
+
+        <hr class="query-divider" />
+
+        <!-- Ô TÌNH TRẠNG TRỐNG TRƠN, JS SẼ TỰ ĐỘNG BƠM CHỮ VÀO ĐÂY -->
+        <div class="form-group" id="khungLocTinhTrang">
+          <label id="lblTinhTrang">LỌC THEO TÌNH TRẠNG</label>
+          <select class="form-control" id="cboTinhTrang">
+            <option value="all">-- Tất cả --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>TÌM THEO TÊN (Chứa từ khóa)</label>
+          <input
+            type="text"
+            class="form-control"
+            id="txtTuKhoa"
+            placeholder="VD: Trà Sư, Cát, Tê tê..."
+          />
+        </div>
+
+        <button class="btn-apply" id="btnApDung">ÁP DỤNG LỌC DỮ LIỆU</button>
+      </div>
+
+      <!-- TAB 2: HIỂN THỊ KẾT QUẢ -->
+      <div class="tab-content" id="tabKetQua">
+        <div id="lstKetQua">
+          <div class="empty-result">
+            Chưa có dữ liệu. Vui lòng thực hiện truy vấn!
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- BẢNG HIỂN THỊ BIỂU ĐỒ (DASHBOARD) -->
+    <div
+      id="panelThongKe"
+      class="query-panel hidden"
+      style="width: 420px; left: 70px"
+    >
+      <div class="query-header">
+        <h3 id="txtTenLopThongKe" style="color: #673ab7">📈 Thống kê</h3>
+        <button class="btn-close" id="btnDongThongKe">✖</button>
+      </div>
+      <div
+        class="tab-content active"
+        style="max-height: 80vh; overflow-y: auto"
+      >
+        <div id="statLoader" style="text-align: center; padding: 40px 20px">
+          <div class="spinner"></div>
+          <p style="margin-top: 15px; color: #673ab7; font-weight: bold">
+            Đang kết nối cơ sở dữ liệu...
+          </p>
+        </div>
+        <div id="statContainer" class="hidden">
+          <div class="stat-card">
+            <canvas id="chartChinh"></canvas>
+          </div>
+          <div
+            id="statSummaryText"
+            style="
+              margin-top: 15px;
+              padding: 12px;
+              background: #f3e5f5;
+              border-left: 5px solid #673ab7;
+              border-radius: 4px;
+              font-size: 14px;
+              color: #333;
+              line-height: 1.5;
+            "
+          ></div>
+          <!-- CHÈN NÚT BÁO CÁO VÀO ĐÂY -->
+          <button id="btnMoBaoCao" class="btn-report-action">
+            📄 XEM & XUẤT BÁO CÁO CHI TIẾT
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1212,7 +1212,7 @@ function phongDuLieuLenGeoServer(
         alert("Lỗi Khoáng sản! F12 xem chi tiết");
         console.log(data);
       } else {
-        alert("Đại Công Cáo Thành! Đã lưu Khoáng sản!");
+        alert("Đã lưu Khoáng sản thành công");
         drawnItems.clearLayers();
       }
     })
@@ -1254,7 +1254,7 @@ function phongDuLieuRungLenGeoServer(
         alert("Lỗi Rừng! F12 xem chi tiết");
         console.log(data);
       } else {
-        alert("Đại Công Cáo Thành! Đã trồng thêm Rừng thành công!");
+        alert("Đã lưu Rừng thành công!");
         drawnItems.clearLayers();
       }
     })
@@ -1296,7 +1296,7 @@ function phongDuLieuDatLenGeoServer(
         alert("Lỗi Đất! F12 xem chi tiết");
         console.log(data);
       } else {
-        alert("Đại Công Cáo Thành! Đã lưu vùng Đất thành công!");
+        alert("Đã lưu vùng Đất thành công!");
         drawnItems.clearLayers();
       }
     })
@@ -1329,7 +1329,7 @@ function phongDuLieuNuocLenGeoServer(chuoiToaDo, ten, loai, cap) {
         alert("Lỗi Nước! F12 xem chi tiết");
         console.log(data);
       } else {
-        alert("Đại Công Cáo Thành! Đã khơi thông Thủy Mạch thành công!");
+        alert("Đã lưu Thủy Mạch thành công!");
         drawnItems.clearLayers();
       }
     })
@@ -1371,7 +1371,7 @@ function phongDuLieuSinhVatLenGeoServer(
         alert("Lỗi Sinh Vật! Đọc F12 xem chi tiết!");
         console.log(data);
       } else {
-        alert("Đại Công Cáo Thành! Đã thêm sinh vật thành công!");
+        alert("Đã lưu Sinh Vật thành công!");
         drawnItems.clearLayers();
       }
     })
@@ -1804,7 +1804,7 @@ const panelThongKe = document.getElementById("panelThongKe");
 const btnDongThongKe = document.getElementById("btnDongThongKe");
 
 // =====================================================================
-// ĐẠI PHÁP QUẢN LÝ THANH CÔNG CỤ (TẮT/MỞ ĐỒNG BỘ 3 NÚT) - FIX
+// THANH CÔNG CỤ (TẮT/MỞ ĐỒNG BỘ 3 NÚT) - FIX
 // =====================================================================
 
 // 1. Lấy các phần tử DOM

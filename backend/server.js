@@ -442,6 +442,167 @@ app.delete(
     return res.json({ ok: true });
   },
 );
+app.get(
+  "/api/admin/layers",
+  authRequired,
+  requirePerm("admin.users"),
+  (req, res) => {
+    const items = Object.keys(LAYER_META).map((layer) => ({
+      layer,
+      table: LAYER_META[layer].table,
+    }));
+    res.json(items);
+  },
+);
+app.get(
+  "/api/admin/layer-objects",
+  authRequired,
+  requirePerm("admin.users"),
+  async (req, res) => {
+    try {
+      const layer = String(req.query.layer || "");
+      const meta = LAYER_META[layer];
+      if (!meta) return res.status(400).json({ message: "Layer không hợp lệ" });
+
+      const table = meta.table;
+      const q = String(req.query.q || "").trim();
+      const status = String(req.query.status || "all").trim(); // all|nhap|cho_duyet|da_duyet|cong_bo|tu_choi
+      const limit = Math.min(Number(req.query.limit || 50), 200);
+      const page = Math.max(Number(req.query.page || 1), 1);
+      const offset = (page - 1) * limit;
+
+      const labelCol = await pickLabelColumn(table);
+
+      const where = [];
+      const params = [];
+
+      if (status !== "all") {
+        params.push(status);
+        where.push(`t.trang_thai_du_lieu = $${params.length}`);
+      }
+      if (q && labelCol) {
+        params.push(`%${q}%`);
+        where.push(`CAST(t.${labelCol} AS TEXT) ILIKE $${params.length}`);
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+      // total
+      const countSql = `SELECT COUNT(*)::int AS total FROM public.${table} t ${whereSql};`;
+      const countRes = await pool.query(countSql, params);
+      const total = countRes.rows[0]?.total || 0;
+
+      // items
+      params.push(limit);
+      params.push(offset);
+
+      const selectLabel = labelCol
+        ? `t.${labelCol} AS ten`
+        : `NULL::text AS ten`;
+
+      const sql = `
+        SELECT
+          t.id,
+          ${selectLabel},
+          t.trang_thai_du_lieu,
+          t.ngay_tao, t.nguoi_tao,
+          t.ngay_cap_nhat, t.nguoi_cap_nhat,
+          t.ngay_phe_duyet, t.nguoi_phe_duyet,
+          t.ngay_cong_bo, t.nguoi_cong_bo,
+          t.ly_do_tu_choi,
+          u1.ho_ten AS ten_nguoi_tao,
+          u2.ho_ten AS ten_nguoi_cap_nhat,
+          u3.ho_ten AS ten_nguoi_phe_duyet,
+          u4.ho_ten AS ten_nguoi_cong_bo
+        FROM public.${table} t
+        LEFT JOIN public.tai_khoan u1 ON u1.id = t.nguoi_tao
+        LEFT JOIN public.tai_khoan u2 ON u2.id = t.nguoi_cap_nhat
+        LEFT JOIN public.tai_khoan u3 ON u3.id = t.nguoi_phe_duyet
+        LEFT JOIN public.tai_khoan u4 ON u4.id = t.nguoi_cong_bo
+        ${whereSql}
+        ORDER BY COALESCE(t.ngay_cong_bo, t.ngay_phe_duyet, t.ngay_cap_nhat, t.ngay_tao) DESC NULLS LAST
+        LIMIT $${params.length - 1} OFFSET $${params.length};
+      `;
+
+      const { rows } = await pool.query(sql, params);
+      return res.json({
+        layer,
+        table,
+        labelCol,
+        page,
+        limit,
+        total,
+        items: rows,
+      });
+    } catch (e) {
+      console.error(e);
+      return res
+        .status(500)
+        .json({ message: "Lỗi lấy danh sách đối tượng", detail: e.message });
+    }
+  },
+);
+app.patch(
+  "/api/admin/layer-objects/stage",
+  authRequired,
+  requirePerm("admin.users"),
+  async (req, res) => {
+    try {
+      const { layer, ids, stage, reason } = req.body || {};
+      const meta = LAYER_META[layer];
+      if (!meta) return res.status(400).json({ message: "Layer không hợp lệ" });
+
+      const table = meta.table;
+      const userId = req.user.sub;
+
+      if (!Array.isArray(ids) || ids.length === 0)
+        return res.status(400).json({ message: "Thiếu ids" });
+
+      const map = {
+        nhap: {
+          status: "nhap",
+          set: "nguoi_tao=$2, ngay_tao=COALESCE(ngay_tao, now()), ly_do_tu_choi=NULL",
+        },
+        cho_duyet: {
+          status: "cho_duyet",
+          set: "nguoi_cap_nhat=$2, ngay_cap_nhat=now(), ly_do_tu_choi=NULL",
+        },
+        da_duyet: {
+          status: "da_duyet",
+          set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=NULL",
+        },
+        cong_bo: {
+          status: "cong_bo",
+          set: "nguoi_cong_bo=$2, ngay_cong_bo=now()",
+        },
+        tu_choi: {
+          status: "tu_choi",
+          set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=$3",
+        },
+      };
+
+      if (!map[stage])
+        return res.status(400).json({ message: "stage không hợp lệ" });
+
+      const placeholders = ids.map((_, i) => `$${i + 4}`).join(",");
+      const sql = `
+        UPDATE public.${table}
+        SET trang_thai_du_lieu='${map[stage].status}', ${map[stage].set}
+        WHERE id IN (${placeholders})
+        RETURNING id, trang_thai_du_lieu;
+      `;
+      const params = [layer, userId, reason || null, ...ids];
+      const { rows } = await pool.query(sql, params);
+
+      return res.json({ ok: true, updated: rows.length, rows });
+    } catch (e) {
+      console.error(e);
+      return res
+        .status(500)
+        .json({ message: "Lỗi cập nhật trạng thái", detail: e.message });
+    }
+  },
+);
 /**************************************************
  * WORKFLOW + LỊCH SỬ CẬP NHẬT (DÙNG CHUNG MỌI LỚP)
  **************************************************/
@@ -676,6 +837,39 @@ app.patch(
     }
   },
 );
+// Layer -> Postgres table (chỉ cho phép các bảng này)
+const LAYER_META = {
+  "webgis_angiang:rung": { table: "rung" },
+  "webgis_angiang:dat": { table: "dat" },
+  "webgis_angiang:khoangsan_diem_mo": { table: "khoangsan_diem_mo" },
+  "webgis_angiang:thucvat_ag": { table: "thucvat_ag" },
+  "webgis_angiang:dongvat_ag": { table: "dongvat_ag" },
+  "webgis_angiang:waterways": { table: "waterways" },
+  "webgis_angiang:go": { table: "go" },
+};
+
+// Tự chọn “cột tên” để hiển thị (nếu bảng nào có)
+const LABEL_CANDIDATES = [
+  "ten",
+  "name",
+  "ten_don_vi",
+  "ten_tai_nguyen",
+  "ten_khoang_san",
+  "loai",
+  "ma",
+];
+
+async function pickLabelColumn(table) {
+  const { rows } = await pool.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema='public' AND table_name=$1`,
+    [table],
+  );
+  const cols = new Set(rows.map((r) => r.column_name));
+  const found = LABEL_CANDIDATES.find((c) => cols.has(c));
+  return found || null; // null => chỉ hiển thị ID
+}
 app.listen(process.env.PORT || 3000, () => {
   console.log(`✅ API running at http://localhost:${process.env.PORT || 3000}`);
 });

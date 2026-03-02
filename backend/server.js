@@ -49,7 +49,23 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Action", "X-Layer"],
   }),
 );
+// =========================================================
+// ✅ Proxy GeoServer (thay cho Live Server proxy /myproxy)
+// Cho phép Frontend gọi: /myproxy/<workspace>/wms | /myproxy/<workspace>/ows
+// =========================================================
+const GEOSERVER_BASE =
+  process.env.GEOSERVER_BASE_URL || "http://14.225.210.50:8080/geoserver";
 
+app.use(
+  "/myproxy",
+  createProxyMiddleware({
+    target: GEOSERVER_BASE,
+    changeOrigin: true,
+    secure: false,
+    pathRewrite: { "^/myproxy": "" },
+    logLevel: "warn",
+  }),
+);
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 
 // ===== Helpers RBAC =====
@@ -333,7 +349,80 @@ app.post("/api/wfst", authRequired, validateWfstRequest, async (req, res) => {
     return res.status(500).json({ message: "Proxy error", detail: e.message });
   }
 });
+// ===== WFS (GetFeature) Proxy - phục vụ click xem thông tin =====
+// ===== WFS (GetFeature) Proxy - phục vụ click xem thông tin =====
+app.get("/api/wfs", async (req, res) => {
+  try {
+    const typeName = (
+      req.query.typeName ||
+      req.query.typename ||
+      ""
+    ).toString();
+    const bbox = (req.query.bbox || "").toString();
+    const maxFeaturesRaw = Number(req.query.maxFeatures || 5);
+    const maxFeatures = Number.isFinite(maxFeaturesRaw)
+      ? Math.max(1, Math.min(maxFeaturesRaw, 20))
+      : 5;
 
+    if (!typeName) return res.status(400).json({ message: "Thiếu typeName" });
+
+    // ✅ whitelist layer (dùng ALLOWED_LAYERS trong .env)
+    if (ALLOWED.size > 0 && !ALLOWED.has(typeName)) {
+      return res.status(400).json({ message: "Layer không được phép" });
+    }
+
+    // bbox: minx,miny,maxx,maxy,EPSG:4326
+    const parts = bbox.split(",").map((s) => s.trim());
+    if (parts.length < 4)
+      return res.status(400).json({ message: "bbox không hợp lệ" });
+    for (let i = 0; i < 4; i++) {
+      const n = Number(parts[i]);
+      if (!Number.isFinite(n))
+        return res.status(400).json({ message: "bbox không hợp lệ" });
+    }
+
+    // ✅ chỉ lấy dữ liệu đã công bố
+    // ✅ chỉ lấy dữ liệu đã công bố + lọc theo bbox bằng CQL (không gửi param bbox lên GeoServer)
+    const minx = Number(parts[0]);
+    const miny = Number(parts[1]);
+    const maxx = Number(parts[2]);
+    const maxy = Number(parts[3]);
+
+    const cql = `(trang_thai_du_lieu='cong_bo') AND BBOX(geom, ${minx}, ${miny}, ${maxx}, ${maxy})`;
+
+    const params = new URLSearchParams({
+      service: "WFS",
+      version: "1.0.0",
+      request: "GetFeature",
+      outputFormat: "application/json",
+      srsName: "EPSG:4326",
+      typeName,
+      maxFeatures: String(maxFeatures),
+      CQL_FILTER: cql, // ✅ chỉ dùng CQL_FILTER
+    });
+
+    const url = `${process.env.GEOSERVER_OWS_URL}?${params.toString()}`;
+
+    const basic = Buffer.from(
+      `${process.env.GEOSERVER_USER}:${process.env.GEOSERVER_PASS}`,
+    ).toString("base64");
+
+    const r = await fetch(url, {
+      headers: { Authorization: `Basic ${basic}` },
+    });
+    const text = await r.text();
+
+    res.status(r.status);
+    res.setHeader(
+      "Content-Type",
+      r.headers.get("content-type") || "text/plain",
+    );
+    return res.send(text);
+  } catch (e) {
+    console.error("WFS_PROXY_ERROR:", e);
+    return res.status(500).json({ message: "Proxy error", detail: e.message });
+  }
+});
 app.get(
   "/api/admin/roles",
   authRequired,
@@ -553,54 +642,86 @@ app.patch(
       const meta = LAYER_META[layer];
       if (!meta) return res.status(400).json({ message: "Layer không hợp lệ" });
 
-      const table = meta.table;
-      const userId = req.user.sub;
-
-      if (!Array.isArray(ids) || ids.length === 0)
+      // ép kiểu userId + ids
+      const userId = Number(req.user?.sub);
+      if (!Number.isFinite(userId)) {
+        return res.status(401).json({ message: "Token không hợp lệ (sub)" });
+      }
+      if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ message: "Thiếu ids" });
+      }
+      const idsInt = ids.map((v) => Number(v));
+      if (idsInt.some((v) => !Number.isFinite(v))) {
+        return res
+          .status(400)
+          .json({ message: "ids không hợp lệ (phải là số)" });
+      }
 
+      const table = meta.table;
+
+      // map dùng $1 (userId). tu_choi dùng thêm $2 (reason)
       const map = {
         nhap: {
           status: "nhap",
-          set: "nguoi_tao=$2, ngay_tao=COALESCE(ngay_tao, now()), ly_do_tu_choi=NULL",
+          set: "nguoi_tao=$1::int, ngay_tao=COALESCE(ngay_tao, now()), ly_do_tu_choi=NULL",
+          needsReason: false,
         },
         cho_duyet: {
           status: "cho_duyet",
-          set: "nguoi_cap_nhat=$2, ngay_cap_nhat=now(), ly_do_tu_choi=NULL",
+          set: "nguoi_cap_nhat=$1::int, ngay_cap_nhat=now(), ly_do_tu_choi=NULL",
+          needsReason: false,
         },
         da_duyet: {
           status: "da_duyet",
-          set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=NULL",
+          set: "nguoi_phe_duyet=$1::int, ngay_phe_duyet=now(), ly_do_tu_choi=NULL",
+          needsReason: false,
         },
         cong_bo: {
           status: "cong_bo",
-          set: "nguoi_cong_bo=$2, ngay_cong_bo=now()",
+          set: "nguoi_cong_bo=$1::int, ngay_cong_bo=now()",
+          needsReason: false,
         },
         tu_choi: {
           status: "tu_choi",
-          set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=$3",
+          set: "nguoi_phe_duyet=$1::int, ngay_phe_duyet=now(), ly_do_tu_choi=$2::text",
+          needsReason: true,
         },
       };
 
-      if (!map[stage])
-        return res.status(400).json({ message: "stage không hợp lệ" });
+      const cfg = map[stage];
+      if (!cfg) return res.status(400).json({ message: "stage không hợp lệ" });
 
-      const placeholders = ids.map((_, i) => `$${i + 4}`).join(",");
+      if (cfg.needsReason && !String(reason || "").trim()) {
+        return res.status(400).json({ message: "Thiếu lý do từ chối" });
+      }
+
+      // ✅ tham số KHÔNG nhảy cóc: ids bắt đầu từ $2 hoặc $3
+      let placeholders = "";
+      let params = [];
+
+      if (stage === "tu_choi") {
+        placeholders = idsInt.map((_, i) => `$${i + 3}`).join(",");
+        params = [userId, String(reason || ""), ...idsInt];
+      } else {
+        placeholders = idsInt.map((_, i) => `$${i + 2}`).join(",");
+        params = [userId, ...idsInt];
+      }
+
       const sql = `
         UPDATE public.${table}
-        SET trang_thai_du_lieu='${map[stage].status}', ${map[stage].set}
+        SET trang_thai_du_lieu='${cfg.status}', ${cfg.set}
         WHERE id IN (${placeholders})
         RETURNING id, trang_thai_du_lieu;
       `;
-      const params = [layer, userId, reason || null, ...ids];
-      const { rows } = await pool.query(sql, params);
 
+      const { rows } = await pool.query(sql, params);
       return res.json({ ok: true, updated: rows.length, rows });
     } catch (e) {
-      console.error(e);
-      return res
-        .status(500)
-        .json({ message: "Lỗi cập nhật trạng thái", detail: e.message });
+      console.error("PATCH /api/admin/layer-objects/stage FAILED:", e);
+      return res.status(500).json({
+        message: "Lỗi cập nhật trạng thái",
+        detail: e.message,
+      });
     }
   },
 );
@@ -610,13 +731,12 @@ app.patch(
 
 // 1) Map layer (GeoServer) -> table (Postgres)
 const LAYER_TABLE_MAP = {
-  "webgis_angiang:rung": "rung",
-  "webgis_angiang:dat": "dat",
-  "webgis_angiang:khoangsan_diem_mo": "khoangsan_diem_mo",
-  "webgis_angiang:thucvat_ag": "thucvat_ag",
-  "webgis_angiang:dongvat_ag": "dongvat_ag",
-  "webgis_angiang:waterways": "waterways",
-  "webgis_angiang:go": "go",
+  "angiang:rung": "rung",
+  "angiang:dat": "dat",
+  "angiang:khoangsan_diem_mo": "khoangsan_diem_mo",
+  "angiang:thucvat": "thucvat_ag",
+  "angiang:dongvat": "dongvat_ag",
+  "angiang:waterways": "waterways",
 };
 
 // 2) Admin xem lịch sử theo layer (feature-level)
@@ -731,7 +851,7 @@ app.patch("/api/workflow/set-stage", authRequired, async (req, res) => {
       WHERE id IN (${placeholders})
       RETURNING id, trang_thai_du_lieu;
     `;
-    const params = [layer, userId, reason || null, ...ids];
+    const params = [layer, userId, String(reason || ""), ...idsInt];
 
     const { rows } = await pool.query(q, params);
     return res.json({ updated: rows.length, rows });
@@ -840,16 +960,20 @@ app.patch(
 );
 // Layer -> Postgres table (chỉ cho phép các bảng này)
 const LAYER_META = {
-  "webgis_angiang:rung": { table: "rung", label: "Rừng" },
-  "webgis_angiang:dat": { table: "dat", label: "Đất" },
-  "webgis_angiang:khoangsan_diem_mo": {
+  // ✅ khớp với script.js đang insert bằng WORKSPACE = "angiang"
+  "angiang:rung": { table: "rung", label: "Rừng" },
+  "angiang:dat": { table: "dat", label: "Đất" },
+  "angiang:khoangsan_diem_mo": {
     table: "khoangsan_diem_mo",
     label: "Khoáng sản (điểm mỏ)",
   },
-  "webgis_angiang:thucvat_ag": { table: "thucvat_ag", label: "Thực vật (AG)" },
-  "webgis_angiang:dongvat_ag": { table: "dongvat_ag", label: "Động vật (AG)" },
-  "webgis_angiang:waterways": { table: "waterways", label: "Sông ngòi" },
-  "webgis_angiang:go": { table: "go", label: "Gỗ" },
+
+  // ✅ layer name trên map là "dongvat" / "thucvat"
+  // table vẫn giữ như bạn đang dùng trong DB (ag) nếu đó là tên bảng thật
+  "angiang:thucvat": { table: "thucvat_ag", label: "Thực vật" },
+  "angiang:dongvat": { table: "dongvat_ag", label: "Động vật" },
+
+  "angiang:waterways": { table: "waterways", label: "Sông ngòi" },
 };
 
 // Tự chọn “cột tên” để hiển thị (nếu bảng nào có)

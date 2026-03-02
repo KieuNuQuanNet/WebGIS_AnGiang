@@ -18,41 +18,55 @@ var googleSatLayer = L.tileLayer(
 
 var urlWMS = "/myproxy/angiang/wms";
 
+// ✅ CHỈ HIỂN THỊ DỮ LIỆU ĐÃ CÔNG BỐ
+const CQL_CONG_BO = "trang_thai_du_lieu='cong_bo'";
+
 var rung = L.tileLayer.wms(urlWMS, {
   layers: "angiang:rung",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
+
 var nuoc = L.tileLayer.wms(urlWMS, {
   layers: "angiang:waterways",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
+
 var dat = L.tileLayer.wms(urlWMS, {
   layers: "angiang:dat",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
+
 var khoangsan = L.tileLayer.wms(urlWMS, {
   layers: "angiang:khoangsan_diem_mo",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
+
 var dongvat = L.tileLayer.wms(urlWMS, {
   layers: "angiang:dongvat",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
+
 var thucvat = L.tileLayer.wms(urlWMS, {
   layers: "angiang:thucvat",
   format: "image/png",
   transparent: true,
   version: "1.1.0",
+  CQL_FILTER: CQL_CONG_BO,
 });
 
 // =====================================================================
@@ -229,29 +243,53 @@ window.toggleBoLoc = function (boxId, arrowId) {
   document.getElementById(arrowId).classList.toggle("open");
 };
 
+// ⚙️ Chỉ hiển thị dữ liệu đã Công bố trên bản đồ
+// 👉 Nếu muốn debug hiển thị TẤT CẢ dữ liệu, đổi thành "" (chuỗi rỗng)
+const BASE_CQL_PUBLISHED = "trang_thai_du_lieu='cong_bo'";
+
 function capNhatLopWMS(layerWMS, chkMainId, subClassName, columnName) {
-  var chkMain = document.getElementById(chkMainId);
-  if (!chkMain.checked) {
+  const chkMain = document.getElementById(chkMainId);
+  if (!chkMain || !chkMain.checked) {
     map.removeLayer(layerWMS);
     return;
   }
+
   if (!map.hasLayer(layerWMS)) map.addLayer(layerWMS);
 
-  var cacOTick = document.querySelectorAll("." + subClassName + ":checked");
-  var tongSoOPhu = document.querySelectorAll("." + subClassName).length;
+  const cacOTick = document.querySelectorAll("." + subClassName + ":checked");
+  const tongSoOPhu = document.querySelectorAll("." + subClassName).length;
 
-  if (cacOTick.length === 0) {
-    map.removeLayer(layerWMS);
-  } else if (cacOTick.length === tongSoOPhu) {
-    delete layerWMS.wmsParams.CQL_FILTER;
-    layerWMS.redraw();
-  } else {
-    var mangGiaTri = Array.from(cacOTick).map(
-      (chk) => `${columnName} = '${chk.value}'`,
-    );
-    var cqlString = mangGiaTri.join(" OR ");
-    layerWMS.setParams({ CQL_FILTER: cqlString });
+  // ✅ Nếu lớp KHÔNG có checkbox con => vẫn hiển thị bình thường
+  if (tongSoOPhu === 0) {
+    if (BASE_CQL_PUBLISHED)
+      layerWMS.setParams({ CQL_FILTER: BASE_CQL_PUBLISHED });
+    else {
+      delete layerWMS.wmsParams.CQL_FILTER;
+      layerWMS.redraw();
+    }
+    return;
   }
+
+  // ✅ All hoặc none (trong trường hợp DOM chưa sync) => chỉ áp BASE_CQL
+  if (cacOTick.length === 0 || cacOTick.length === tongSoOPhu) {
+    if (BASE_CQL_PUBLISHED)
+      layerWMS.setParams({ CQL_FILTER: BASE_CQL_PUBLISHED });
+    else {
+      delete layerWMS.wmsParams.CQL_FILTER;
+      layerWMS.redraw();
+    }
+    return;
+  }
+
+  // ✅ Lọc theo checkbox con + AND với BASE_CQL
+  const subOr = Array.from(cacOTick)
+    .map((chk) => `${columnName} = '${chk.value}'`)
+    .join(" OR ");
+
+  const cqlString = BASE_CQL_PUBLISHED
+    ? `(${BASE_CQL_PUBLISHED}) AND (${subOr})`
+    : subOr;
+  layerWMS.setParams({ CQL_FILTER: cqlString });
 }
 
 function dongBoCheckbox(chkMainId, subClassName, layerWMS, columnName) {
@@ -316,191 +354,179 @@ const TU_DIEN_COT = {
 // =====================================================================
 // GIAI ĐOẠN 2: CLICK LẤY THÔNG TIN & SỬA XÓA (WFS GETFEATURE & WFS-T)
 // =====================================================================
+function fetchWFS(urlWFS, typeName, tieuDe, layerObj) {
+  return fetch(urlWFS + "&typeName=" + encodeURIComponent(typeName))
+    .then(async (res) => {
+      const ct = res.headers.get("content-type") || "";
+      const text = await res.text();
 
+      // Nếu GeoServer trả XML/HTML (ExceptionReport/ServiceException), log ra luôn
+      if (!ct.includes("application/json")) {
+        console.warn("WFS không phải JSON:", typeName, ct, text.slice(0, 300));
+        return null;
+      }
+
+      const data = JSON.parse(text);
+      if (data.features && data.features.length > 0) {
+        return {
+          feature: data.features[0],
+          layerName: typeName,
+          layerObj,
+          tieuDe,
+        };
+      }
+      return null;
+    })
+    .catch((e) => {
+      console.warn("WFS lỗi fetch:", typeName, e);
+      return null;
+    });
+}
 map.on("click", function (e) {
-  var tolerance = 0.001;
-  var minx = e.latlng.lng - tolerance;
-  var miny = e.latlng.lat - tolerance;
-  var maxx = e.latlng.lng + tolerance;
-  var maxy = e.latlng.lat + tolerance;
-  var promises = [];
-  var urlWFS = `/myproxy/angiang/ows?service=WFS&version=1.1.0&request=GetFeature&outputFormat=application/json&srsName=EPSG:4326&bbox=${minx},${miny},${maxx},${maxy},EPSG:4326`;
+  // ✅ tolerance theo pixel để click ổn định theo mọi mức zoom
+  const pxTol = 8;
+  const p = map.latLngToContainerPoint(e.latlng);
+  const p1 = L.point(p.x - pxTol, p.y - pxTol);
+  const p2 = L.point(p.x + pxTol, p.y + pxTol);
+  const ll1 = map.containerPointToLatLng(p1);
+  const ll2 = map.containerPointToLatLng(p2);
 
-  // 1. Dò tìm trên các lớp đang hiển thị
-  if (map.hasLayer(khoangsan))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:khoangsan_diem_mo")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:khoangsan_diem_mo",
-              layerObj: khoangsan,
-              tieuDe: "Khoáng sản",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
-  if (map.hasLayer(rung))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:rung")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:rung",
-              layerObj: rung,
-              tieuDe: "Rừng",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
-  if (map.hasLayer(nuoc))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:waterways")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:waterways",
-              layerObj: nuoc,
-              tieuDe: "Nước",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
-  if (map.hasLayer(dat))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:dat")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:dat",
-              layerObj: dat,
-              tieuDe: "Đất",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
-  if (map.hasLayer(dongvat))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:dongvat")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:dongvat",
-              layerObj: dongvat,
-              tieuDe: "Động vật",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
-  if (map.hasLayer(thucvat))
-    promises.push(
-      fetch(urlWFS + "&typeName=angiang:thucvat")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0)
-            return {
-              feature: data.features[0],
-              layerName: "angiang:thucvat",
-              layerObj: thucvat,
-              tieuDe: "Thực vật",
-            };
-          return null;
-        })
-        .catch(() => null),
-    );
+  const minx = Math.min(ll1.lng, ll2.lng);
+  const miny = Math.min(ll1.lat, ll2.lat);
+  const maxx = Math.max(ll1.lng, ll2.lng);
+  const maxy = Math.max(ll1.lat, ll2.lat);
 
-  // 2. XỬ LÝ KẾT QUẢ VÀ TẠO GIAO DIỆN POPUP
-  Promise.all(promises).then((results) => {
-    var validResults = results.filter((r) => r !== null);
-    if (validResults.length > 0) {
-      var containerDiv = document.createElement("div");
+  const promises = [];
 
-      // CHẶN XUYÊN THẤU XUỐNG BẢN ĐỒ
-      L.DomEvent.disableClickPropagation(containerDiv);
-      L.DomEvent.disableScrollPropagation(containerDiv);
+  // ✅ ĐỔI sang gọi backend proxy WFS (ổn định hơn / không sợ GeoServer chặn WFS anonymous)
+  const urlWFSBase =
+    `${API_BASE}/api/wfs` +
+    `?bbox=${minx},${miny},${maxx},${maxy},EPSG:4326` +
+    `&maxFeatures=5`;
 
-      validResults.forEach((item) => {
-        var featureId = item.feature.id;
-        var props = item.feature.properties;
-
-        var block = document.createElement("div");
-        block.className = "info-popup";
-
-        // 👉 DÙNG TỪ ĐIỂN ĐỂ IN RA TÊN ĐẸP CHO POPUP
-        var htmlInfo = `<h4>Thông tin ${item.tieuDe}</h4>`;
-        for (var key in props) {
-          // Bỏ qua ID, tọa độ, và các cột rỗng (null hoặc "")
-          if (
-            key !== "bbox" &&
-            key !== "geom" &&
-            key !== "id" &&
-            props[key] !== null &&
-            props[key] !== ""
-          ) {
-            var tenHienThi = TU_DIEN_COT[key] || key; // Nếu có trong từ điển thì lấy tên đẹp, không thì lấy tên gốc
-            htmlInfo += `<p><b>${tenHienThi}:</b> <span class="val-display">${props[key]}</span></p>`;
-          }
+  // helper: fetch WFS và bắt lỗi rõ ràng
+  function fetch1(typeName, layerObj, tieuDe) {
+    return fetch(urlWFSBase + `&typeName=${encodeURIComponent(typeName)}`)
+      .then(async (res) => {
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
+        const text = await res.text();
+        if (!res.ok)
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+        if (!ct.includes("application/json")) {
+          // GeoServer hay trả XML ServiceException -> ct không phải json
+          throw new Error(`Không phải JSON: ${text.slice(0, 200)}`);
         }
+        return JSON.parse(text);
+      })
+      .then((data) => {
+        if (data.features && data.features.length > 0) {
+          return {
+            feature: data.features[0],
+            layerName: typeName,
+            layerObj,
+            tieuDe,
+          };
+        }
+        return null;
+      })
+      .catch((err) => ({
+        __error: true,
+        typeName,
+        tieuDe,
+        message: err.message,
+      }));
+  }
 
-        // Gắn nút Sửa và Xóa
-        htmlInfo += `
-          <div class="popup-actions">
-            <button class="btn-popup btn-edit">✏️ SỬA</button>
-            <button class="btn-popup btn-delete">🗑️ XÓA</button>
-          </div>
-        `;
-        block.innerHTML = htmlInfo;
+  // 1) Dò tìm trên các lớp đang hiển thị
+  if (map.hasLayer(khoangsan))
+    promises.push(fetch1("angiang:khoangsan_diem_mo", khoangsan, "Khoáng sản"));
+  if (map.hasLayer(rung)) promises.push(fetch1("angiang:rung", rung, "Rừng"));
+  if (map.hasLayer(nuoc))
+    promises.push(fetch1("angiang:waterways", nuoc, "Nước"));
+  if (map.hasLayer(dat)) promises.push(fetch1("angiang:dat", dat, "Đất"));
+  if (map.hasLayer(dongvat))
+    promises.push(fetch1("angiang:dongvat", dongvat, "Động vật"));
+  if (map.hasLayer(thucvat))
+    promises.push(fetch1("angiang:thucvat", thucvat, "Thực vật"));
 
-        // BẮT SỰ KIỆN: XÓA DỮ LIỆU
-        block
-          .querySelector(".btn-delete")
-          .addEventListener("click", function (e) {
-            L.DomEvent.stop(e);
-            if (
-              confirm(
-                `Đạo hữu có chắc chắn muốn XÓA đối tượng này khỏi cơ sở dữ liệu không?`,
-              )
-            ) {
-              this.innerHTML = "⏳ Đang xóa...";
-              xoaDuLieuWFS(item.layerName, featureId, item.layerObj);
-            }
-          });
+  // 2) Xử lý kết quả + popup
+  Promise.all(promises).then((results) => {
+    const errors = results.filter((r) => r && r.__error);
+    const validResults = results.filter((r) => r && !r.__error);
 
-        // BẮT SỰ KIỆN: MỞ FORM SỬA
-        block
-          .querySelector(".btn-edit")
-          .addEventListener("click", function (e) {
-            L.DomEvent.stop(e);
-            moFormSuaDoi(
-              block,
-              item.layerName,
-              featureId,
-              props,
-              item.layerObj,
-            );
-          });
+    // ✅ Nếu không có gì -> vẫn mở popup báo rõ
+    if (validResults.length === 0) {
+      let msg = "❗ Không tìm thấy đối tượng tại vị trí click.";
+      if (errors.length) {
+        msg +=
+          "<br><br><b>Lỗi đọc WFS:</b><br>" +
+          errors.map((e) => `• ${e.tieuDe}: ${e.message}`).join("<br>");
+      }
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(`<div class="info-popup">${msg}</div>`)
+        .openOn(map);
+      return;
+    }
 
-        containerDiv.appendChild(block);
-        containerDiv.appendChild(document.createElement("hr"));
+    // --- phần cũ của bạn giữ nguyên từ đây trở xuống ---
+    var containerDiv = document.createElement("div");
+    L.DomEvent.disableClickPropagation(containerDiv);
+    L.DomEvent.disableScrollPropagation(containerDiv);
+
+    validResults.forEach((item) => {
+      var featureId = item.feature.id;
+      var props = item.feature.properties;
+
+      var block = document.createElement("div");
+      block.className = "info-popup";
+
+      var htmlInfo = `<h4>Thông tin ${item.tieuDe}</h4>`;
+      for (var key in props) {
+        if (
+          key !== "bbox" &&
+          key !== "geom" &&
+          key !== "id" &&
+          props[key] !== null &&
+          props[key] !== ""
+        ) {
+          var tenHienThi = TU_DIEN_COT[key] || key;
+          htmlInfo += `<p><b>${tenHienThi}:</b> <span class="val-display">${props[key]}</span></p>`;
+        }
+      }
+
+      htmlInfo += `
+        <div class="popup-actions">
+          <button class="btn-popup btn-edit">✏️ SỬA</button>
+          <button class="btn-popup btn-delete">🗑️ XÓA</button>
+        </div>
+      `;
+      block.innerHTML = htmlInfo;
+
+      block
+        .querySelector(".btn-delete")
+        .addEventListener("click", function (ev) {
+          L.DomEvent.stop(ev);
+          if (
+            confirm(
+              `Bạn có chắc chắn muốn xóa đối tượng này khỏi cơ sở dữ liệu không?`,
+            )
+          ) {
+            this.innerHTML = "⏳ Đang xóa...";
+            xoaDuLieuWFS(item.layerName, featureId, item.layerObj);
+          }
+        });
+
+      block.querySelector(".btn-edit").addEventListener("click", function (ev) {
+        L.DomEvent.stop(ev);
+        moFormSuaDoi(block, item.layerName, featureId, props, item.layerObj);
       });
 
-      L.popup().setLatLng(e.latlng).setContent(containerDiv).openOn(map);
-    }
+      containerDiv.appendChild(block);
+      containerDiv.appendChild(document.createElement("hr"));
+    });
+
+    L.popup().setLatLng(e.latlng).setContent(containerDiv).openOn(map);
   });
 });
 
@@ -611,6 +637,39 @@ function xmlEscape(v) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+// ✅ ISO không kèm timezone (đỡ lệch giờ)
+function nowIsoNoTZ() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
+// ✅ workflow mặc định cho record mới: NHẬP
+function wfInsertMetaXml(nsPrefix) {
+  const now = nowIsoNoTZ();
+  return `
+    <${nsPrefix}:trang_thai_du_lieu>nhap</${nsPrefix}:trang_thai_du_lieu>
+    <${nsPrefix}:ngay_tao>${now}</${nsPrefix}:ngay_tao>
+    <${nsPrefix}:ngay_cap_nhat>${now}</${nsPrefix}:ngay_cap_nhat>
+  `;
+}
+
+// ✅ check WFST response chuẩn hơn (tránh báo “thành công” giả)
+function wfstHasError(respText) {
+  return /ExceptionReport|ServiceExceptionReport|<wfs:Status>\s*FAILED/i.test(
+    respText,
+  );
+}
+function wfstTotalInserted(respText) {
+  const m = respText.match(
+    /<wfs:totalInserted>\s*(\d+)\s*<\/wfs:totalInserted>/i,
+  );
+  return m ? Number(m[1]) : null;
 }
 async function postWFST(action, layer, xml) {
   const token = getToken();
@@ -769,7 +828,7 @@ function xoaDuLieuWFS(layerName, featureId, layerObj) {
         alert("Lỗi khi xóa dữ liệu! Mở F12 để xem.");
         console.log(data);
       } else {
-        alert("🔥 Đã diệt trừ đối tượng khỏi Cơ sở dữ liệu thành công!");
+        alert("Đã xóa đối tượng khỏi Cơ sở dữ liệu thành công!");
         map.closePopup();
         layerObj.setParams({ fake: Date.now() }, false);
       }
@@ -911,12 +970,11 @@ map.on("draw:created", function (e) {
         <div class="wfs-form-group"><label>Vị trí phân bố:</label><input type="text" id="inpViTri" class="wfs-input" placeholder="Nhập vị trí..."></div>
         <div class="wfs-form-group"><label>Mức độ nguy cấp:</label>
           <select id="inpNguyCap" class="wfs-input">
-            <option value="Bình thường">Bình thường</option>
-            <option value="Ít quan tâm (LC)">Ít quan tâm (LC)</option>
-            <option value="Sắp nguy cấp (VU)">Sắp nguy cấp (VU)</option>
-            <option value="Nguy cấp (EN)">Nguy cấp (EN)</option>
-            <option value="Cực kỳ nguy cấp (CR)">Cực kỳ nguy cấp (CR)</option>
-          </select>
+  <option value="Ít quan tâm (LC)" selected>Ít quan tâm (LC)</option>
+  <option value="Sắp nguy cấp (VU)">Sắp nguy cấp (VU)</option>
+  <option value="Nguy cấp (EN)">Nguy cấp (EN)</option>
+  <option value="Cực kỳ nguy cấp (CR)">Cực kỳ nguy cấp (CR)</option>
+</select>
         </div>
         <div class="wfs-button-group">
           <button id="btnHuySV" class="wfs-btn wfs-btn-cancel">❌ HỦY</button>
@@ -989,8 +1047,8 @@ map.on("draw:created", function (e) {
         </div>
         <div class="wfs-form-group"><label>Tình trạng:</label>
           <select id="inpTinhTrangRung" class="wfs-input">
-            <option value="Chưa xác định">Chưa xác định</option><option value="Ổn định-Bảo vệ">Ổn định-Bảo vệ</option>
-            <option value="Cảnh báo cháy">Cảnh báo cháy</option><option value="Đang cháy" selected>Đang cháy</option>
+            <option value="Chưa xác định">Chưa xác định</option><option value="Ổn định - Bảo vệ">Ổn định - Bảo vệ</option>
+<option value="Cảnh báo cháy">Cảnh báo cháy</option><option value="Đang cháy" selected>Đang cháy</option>
             <option value="Bị suy thoái">Bị suy thoái</option><option value="Đang tái sinh">Đang tái sinh</option>
           </select>
         </div>
@@ -1189,32 +1247,67 @@ function phongDuLieuLenGeoServer(
 ) {
   const WORKSPACE = "angiang";
   const LAYER_NAME = "khoangsan_diem_mo";
+  const WORKSPACE_URI = "http://angiang.vn";
+
+  const x = Number(kinhDo);
+  const y = Number(viDo);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    alert("❌ Kinh độ/Vĩ độ không hợp lệ!");
+    return;
+  }
+
+  const truLuongNum = Number(String(truLuong ?? "").replace(",", "."));
+  const dienTichNum = Number(String(dienTich ?? "").replace(",", "."));
+
+  const truLuongSafe = Number.isFinite(truLuongNum) ? truLuongNum : 0;
+  const dienTichSafe = Number.isFinite(dienTichNum) ? dienTichNum : 0;
+
   const wfsTransaction = `
-        <wfs:Transaction service="WFS" version="1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:${WORKSPACE}="http://angiang.vn">
-            <wfs:Insert>
-                <${WORKSPACE}:${LAYER_NAME}>
-                    <${WORKSPACE}:geom><gml:Point srsName="EPSG:4326"><gml:coordinates>${kinhDo},${viDo}</gml:coordinates></gml:Point></${WORKSPACE}:geom>
-                    <${WORKSPACE}:ten_don_vi>${tenTaiNguyen}</${WORKSPACE}:ten_don_vi>
-                    <${WORKSPACE}:loai_khoang_san>${loaiKhoangSan}</${WORKSPACE}:loai_khoang_san>
-                    <${WORKSPACE}:tinh_trang>${tinhTrang}</${WORKSPACE}:tinh_trang>
-                    <${WORKSPACE}:tru_luong>${truLuong}</${WORKSPACE}:tru_luong>
-                    <${WORKSPACE}:dien_tich>${dienTich}</${WORKSPACE}:dien_tich>
-                    <${WORKSPACE}:dia_chi>${diaChi}</${WORKSPACE}:dia_chi>
-                    <${WORKSPACE}:doi_tuong_bao_ve>${doiTuongBaoVe}</${WORKSPACE}:doi_tuong_bao_ve>
-                    <${WORKSPACE}:nguon_du_lieu>WebGIS An Giang</${WORKSPACE}:nguon_du_lieu>
-                </${WORKSPACE}:${LAYER_NAME}>
-            </wfs:Insert>
-        </wfs:Transaction>`;
+    <wfs:Transaction service="WFS" version="1.0.0"
+      xmlns:wfs="http://www.opengis.net/wfs"
+      xmlns:gml="http://www.opengis.net/gml"
+      xmlns:${WORKSPACE}="${WORKSPACE_URI}">
+      <wfs:Insert>
+        <${WORKSPACE}:${LAYER_NAME}>
+          <${WORKSPACE}:geom>
+            <gml:Point srsName="EPSG:4326">
+              <gml:coordinates>${x},${y}</gml:coordinates>
+            </gml:Point>
+          </${WORKSPACE}:geom>
+
+          <${WORKSPACE}:ten_don_vi>${xmlEscape(tenTaiNguyen)}</${WORKSPACE}:ten_don_vi>
+          <${WORKSPACE}:loai_khoang_san>${xmlEscape(loaiKhoangSan)}</${WORKSPACE}:loai_khoang_san>
+          <${WORKSPACE}:tinh_trang>${xmlEscape(tinhTrang)}</${WORKSPACE}:tinh_trang>
+          <${WORKSPACE}:tru_luong>${truLuongSafe}</${WORKSPACE}:tru_luong>
+          <${WORKSPACE}:dien_tich>${dienTichSafe}</${WORKSPACE}:dien_tich>
+          <${WORKSPACE}:dia_chi>${xmlEscape(diaChi)}</${WORKSPACE}:dia_chi>
+          <${WORKSPACE}:doi_tuong_bao_ve>${xmlEscape(doiTuongBaoVe)}</${WORKSPACE}:doi_tuong_bao_ve>
+<${WORKSPACE}:nguon_du_lieu>${xmlEscape("WebGIS An Giang")}</${WORKSPACE}:nguon_du_lieu>
+${wfInsertMetaXml(WORKSPACE)}
+</${WORKSPACE}:${LAYER_NAME}>
+      </wfs:Insert>
+    </wfs:Transaction>`;
+
+  console.log("WFST INSERT KHOANGSAN XML:", wfsTransaction);
 
   postWFST("insert", `${WORKSPACE}:${LAYER_NAME}`, wfsTransaction)
     .then((data) => {
-      if (data.includes("Exception") || data.includes("Error")) {
-        alert("Lỗi Khoáng sản! F12 xem chi tiết");
+      console.log("WFST INSERT KHOANGSAN RESPONSE:", data);
+      if (wfstHasError(data)) {
+        alert("❌ GeoServer trả lỗi. Mở F12 xem WFST RESPONSE!");
         console.log(data);
-      } else {
-        alert("Đã lưu Khoáng sản thành công");
-        drawnItems.clearLayers();
+        return;
       }
+      const ins = wfstTotalInserted(data);
+      if (ins === 0) {
+        alert(
+          "❌ Không insert được bản ghi (totalInserted=0). Mở F12 xem RESPONSE!",
+        );
+        console.log(data);
+        return;
+      }
+      alert("✅ Đã lưu thành công!");
+      drawnItems.clearLayers();
     })
     .catch((e) => {
       alert("❌ Insert thất bại: " + e.message);
@@ -1232,31 +1325,59 @@ function phongDuLieuRungLenGeoServer(
 ) {
   const WORKSPACE = "angiang";
   const LAYER_NAME = "rung";
-  const geomXml = `<${WORKSPACE}:geom><gml:MultiPolygon srsName="EPSG:4326"><gml:polygonMember><gml:Polygon><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>${chuoiToaDo}</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></gml:polygonMember></gml:MultiPolygon></${WORKSPACE}:geom>`;
+
+  // ⚠️ URI này PHẢI khớp Workspace Namespace URI trong GeoServer
+  const WORKSPACE_URI = "http://angiang.vn";
+
+  const dt = Number(dienTich);
+  const dienTichSafe = Number.isFinite(dt) ? dt : 0;
+
+  const geomXml =
+    `<${WORKSPACE}:geom>` +
+    `<gml:MultiPolygon srsName="EPSG:4326">` +
+    `<gml:polygonMember>` +
+    `<gml:Polygon>` +
+    `<gml:outerBoundaryIs>` +
+    `<gml:LinearRing>` +
+    `<gml:coordinates>${String(chuoiToaDo).trim()}</gml:coordinates>` +
+    `</gml:LinearRing>` +
+    `</gml:outerBoundaryIs>` +
+    `</gml:Polygon>` +
+    `</gml:polygonMember>` +
+    `</gml:MultiPolygon>` +
+    `</${WORKSPACE}:geom>`;
+
   const wfsTransaction = `
-        <wfs:Transaction service="WFS" version="1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:${WORKSPACE}="http://angiang.vn">
-            <wfs:Insert>
-                <${WORKSPACE}:${LAYER_NAME}>
-                    ${geomXml}
-                    <${WORKSPACE}:ten>${ten}</${WORKSPACE}:ten>
-                    <${WORKSPACE}:nhom>${nhom}</${WORKSPACE}:nhom>
-                    <${WORKSPACE}:loai_rung>${loaiRung}</${WORKSPACE}:loai_rung>
-                    <${WORKSPACE}:tinh_trang>${tinhTrang}</${WORKSPACE}:tinh_trang>
-                    <${WORKSPACE}:dien_tich_ha>${dienTich}</${WORKSPACE}:dien_tich_ha>
-                    <${WORKSPACE}:nguon_du_lieu>WebGIS An Giang</${WORKSPACE}:nguon_du_lieu>
-                </${WORKSPACE}:${LAYER_NAME}>
-            </wfs:Insert>
-        </wfs:Transaction>`;
+    <wfs:Transaction service="WFS" version="1.0.0"
+      xmlns:wfs="http://www.opengis.net/wfs"
+      xmlns:gml="http://www.opengis.net/gml"
+      xmlns:${WORKSPACE}="${WORKSPACE_URI}">
+      <wfs:Insert>
+        <${WORKSPACE}:${LAYER_NAME}>
+          ${geomXml}
+          <${WORKSPACE}:ten>${xmlEscape(ten)}</${WORKSPACE}:ten>
+          <${WORKSPACE}:nhom>${xmlEscape(nhom)}</${WORKSPACE}:nhom>
+          <${WORKSPACE}:loai_rung>${xmlEscape(loaiRung)}</${WORKSPACE}:loai_rung>
+          <${WORKSPACE}:tinh_trang>${xmlEscape(tinhTrang)}</${WORKSPACE}:tinh_trang>
+          <${WORKSPACE}:dien_tich_ha>${dienTichSafe}</${WORKSPACE}:dien_tich_ha>
+          <${WORKSPACE}:nguon_du_lieu>${xmlEscape("WebGIS An Giang")}</${WORKSPACE}:nguon_du_lieu>
+${wfInsertMetaXml(WORKSPACE)}
+</${WORKSPACE}:${LAYER_NAME}>
+      </wfs:Insert>
+    </wfs:Transaction>`;
+
+  // ✅ thêm log để nhìn request khi fail
+  console.log("WFST INSERT RUNG XML:", wfsTransaction);
 
   postWFST("insert", `${WORKSPACE}:${LAYER_NAME}`, wfsTransaction)
     .then((data) => {
-      if (data.includes("Exception") || data.includes("Error")) {
-        alert("Lỗi Rừng! F12 xem chi tiết");
-        console.log(data);
-      } else {
-        alert("Đã lưu Rừng thành công!");
-        drawnItems.clearLayers();
+      console.log("WFST INSERT RUNG RESPONSE:", data);
+      if (data.includes("<wfs:Status>FAILED</wfs:Status>")) {
+        alert("❌ Lỗi Rừng (GeoServer FAILED). Mở F12 xem RESPONSE!");
+        return;
       }
+      alert("✅ Đã lưu Rừng thành công!");
+      drawnItems.clearLayers();
     })
     .catch((e) => {
       alert("❌ Insert thất bại: " + e.message);
@@ -1274,31 +1395,61 @@ function phongDuLieuDatLenGeoServer(
 ) {
   const WORKSPACE = "angiang";
   const LAYER_NAME = "dat";
-  const geomXml = `<${WORKSPACE}:geom><gml:MultiPolygon srsName="EPSG:4326"><gml:polygonMember><gml:Polygon><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>${chuoiToaDo}</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></gml:polygonMember></gml:MultiPolygon></${WORKSPACE}:geom>`;
+  const WORKSPACE_URI = "http://angiang.vn";
+
+  const haNum = Number(String(dienTichHa ?? "").replace(",", "."));
+  const m2Num = Number(String(dienTichM2 ?? "").replace(",", "."));
+  const dienTichHaSafe = Number.isFinite(haNum) ? haNum : 0;
+  const dienTichM2Safe = Number.isFinite(m2Num) ? m2Num : 0;
+
+  const geomXml =
+    `<${WORKSPACE}:geom>` +
+    `<gml:MultiPolygon srsName="EPSG:4326">` +
+    `<gml:polygonMember><gml:Polygon><gml:outerBoundaryIs><gml:LinearRing>` +
+    `<gml:coordinates>${String(chuoiToaDo).trim()}</gml:coordinates>` +
+    `</gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></gml:polygonMember>` +
+    `</gml:MultiPolygon>` +
+    `</${WORKSPACE}:geom>`;
+
   const wfsTransaction = `
-        <wfs:Transaction service="WFS" version="1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:${WORKSPACE}="http://angiang.vn">
-            <wfs:Insert>
-                <${WORKSPACE}:${LAYER_NAME}>
-                    ${geomXml}
-                    <${WORKSPACE}:ten>${ten}</${WORKSPACE}:ten>
-                    <${WORKSPACE}:loai_dat_su_dung>${loaiDat}</${WORKSPACE}:loai_dat_su_dung>
-                    <${WORKSPACE}:nhom_su_dung>${nhomsudung}</${WORKSPACE}:nhom_su_dung>
-                    <${WORKSPACE}:dien_tich_ha>${dienTichHa}</${WORKSPACE}:dien_tich_ha>
-                    <${WORKSPACE}:dien_tich_m2>${dienTichM2}</${WORKSPACE}:dien_tich_m2>
-                    <${WORKSPACE}:nguon_du_lieu>WebGIS An Giang</${WORKSPACE}:nguon_du_lieu>
-                </${WORKSPACE}:${LAYER_NAME}>
-            </wfs:Insert>
-        </wfs:Transaction>`;
+    <wfs:Transaction service="WFS" version="1.0.0"
+      xmlns:wfs="http://www.opengis.net/wfs"
+      xmlns:gml="http://www.opengis.net/gml"
+      xmlns:${WORKSPACE}="${WORKSPACE_URI}">
+      <wfs:Insert>
+        <${WORKSPACE}:${LAYER_NAME}>
+          ${geomXml}
+          <${WORKSPACE}:ten>${xmlEscape(ten)}</${WORKSPACE}:ten>
+          <${WORKSPACE}:loai_dat_su_dung>${xmlEscape(loaiDat)}</${WORKSPACE}:loai_dat_su_dung>
+          <${WORKSPACE}:nhom_su_dung>${xmlEscape(nhomsudung)}</${WORKSPACE}:nhom_su_dung>
+          <${WORKSPACE}:dien_tich_ha>${dienTichHaSafe}</${WORKSPACE}:dien_tich_ha>
+          <${WORKSPACE}:dien_tich_m2>${dienTichM2Safe}</${WORKSPACE}:dien_tich_m2>
+          <${WORKSPACE}:nguon_du_lieu>${xmlEscape("WebGIS An Giang")}</${WORKSPACE}:nguon_du_lieu>
+${wfInsertMetaXml(WORKSPACE)}
+</${WORKSPACE}:${LAYER_NAME}>
+      </wfs:Insert>
+    </wfs:Transaction>`;
+
+  console.log("WFST INSERT DAT XML:", wfsTransaction);
 
   postWFST("insert", `${WORKSPACE}:${LAYER_NAME}`, wfsTransaction)
     .then((data) => {
-      if (data.includes("Exception") || data.includes("Error")) {
-        alert("Lỗi Đất! F12 xem chi tiết");
+      console.log("WFST INSERT DAT RESPONSE:", data);
+      if (wfstHasError(data)) {
+        alert("❌ GeoServer trả lỗi. Mở F12 xem WFST RESPONSE!");
         console.log(data);
-      } else {
-        alert("Đã lưu vùng Đất thành công!");
-        drawnItems.clearLayers();
+        return;
       }
+      const ins = wfstTotalInserted(data);
+      if (ins === 0) {
+        alert(
+          "❌ Không insert được bản ghi (totalInserted=0). Mở F12 xem RESPONSE!",
+        );
+        console.log(data);
+        return;
+      }
+      alert("✅ Đã lưu thành công!");
+      drawnItems.clearLayers();
     })
     .catch((e) => {
       alert("❌ Insert thất bại: " + e.message);
@@ -1309,29 +1460,57 @@ function phongDuLieuDatLenGeoServer(
 function phongDuLieuNuocLenGeoServer(chuoiToaDo, ten, loai, cap) {
   const WORKSPACE = "angiang";
   const LAYER_NAME = "waterways";
-  const geomXml = `<${WORKSPACE}:geom><gml:MultiLineString srsName="EPSG:4326"><gml:lineStringMember><gml:LineString><gml:coordinates>${chuoiToaDo}</gml:coordinates></gml:LineString></gml:lineStringMember></gml:MultiLineString></${WORKSPACE}:geom>`;
+  const WORKSPACE_URI = "http://angiang.vn";
+
+  const capNum = Number(String(cap ?? "").replace(",", "."));
+  const capSafe = Number.isFinite(capNum) ? capNum : xmlEscape(cap);
+
+  const geomXml =
+    `<${WORKSPACE}:geom>` +
+    `<gml:MultiLineString srsName="EPSG:4326">` +
+    `<gml:lineStringMember><gml:LineString>` +
+    `<gml:coordinates>${String(chuoiToaDo).trim()}</gml:coordinates>` +
+    `</gml:LineString></gml:lineStringMember>` +
+    `</gml:MultiLineString>` +
+    `</${WORKSPACE}:geom>`;
+
   const wfsTransaction = `
-        <wfs:Transaction service="WFS" version="1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:${WORKSPACE}="http://angiang.vn">
-            <wfs:Insert>
-                <${WORKSPACE}:${LAYER_NAME}>
-                    ${geomXml}
-                    <${WORKSPACE}:ten>${ten}</${WORKSPACE}:ten>
-                    <${WORKSPACE}:loai>${loai}</${WORKSPACE}:loai>
-                    <${WORKSPACE}:cap>${cap}</${WORKSPACE}:cap>
-                    <${WORKSPACE}:nguon>WebGIS An Giang</${WORKSPACE}:nguon>
-                </${WORKSPACE}:${LAYER_NAME}>
-            </wfs:Insert>
-        </wfs:Transaction>`;
+    <wfs:Transaction service="WFS" version="1.0.0"
+      xmlns:wfs="http://www.opengis.net/wfs"
+      xmlns:gml="http://www.opengis.net/gml"
+      xmlns:${WORKSPACE}="${WORKSPACE_URI}">
+      <wfs:Insert>
+        <${WORKSPACE}:${LAYER_NAME}>
+          ${geomXml}
+          <${WORKSPACE}:ten>${xmlEscape(ten)}</${WORKSPACE}:ten>
+          <${WORKSPACE}:loai>${xmlEscape(loai)}</${WORKSPACE}:loai>
+          <${WORKSPACE}:cap>${capSafe}</${WORKSPACE}:cap>
+          <${WORKSPACE}:nguon>${xmlEscape("WebGIS An Giang")}</${WORKSPACE}:nguon>
+${wfInsertMetaXml(WORKSPACE)}
+</${WORKSPACE}:${LAYER_NAME}>
+      </wfs:Insert>
+    </wfs:Transaction>`;
+
+  console.log("WFST INSERT NUOC XML:", wfsTransaction);
 
   postWFST("insert", `${WORKSPACE}:${LAYER_NAME}`, wfsTransaction)
     .then((data) => {
-      if (data.includes("Exception") || data.includes("Error")) {
-        alert("Lỗi Nước! F12 xem chi tiết");
+      console.log("WFST INSERT NUOC RESPONSE:", data);
+      if (wfstHasError(data)) {
+        alert("❌ GeoServer trả lỗi. Mở F12 xem WFST RESPONSE!");
         console.log(data);
-      } else {
-        alert("Đã lưu Thủy Mạch thành công!");
-        drawnItems.clearLayers();
+        return;
       }
+      const ins = wfstTotalInserted(data);
+      if (ins === 0) {
+        alert(
+          "❌ Không insert được bản ghi (totalInserted=0). Mở F12 xem RESPONSE!",
+        );
+        console.log(data);
+        return;
+      }
+      alert("✅ Đã lưu thành công!");
+      drawnItems.clearLayers();
     })
     .catch((e) => {
       alert("❌ Insert thất bại: " + e.message);
@@ -1350,30 +1529,67 @@ function phongDuLieuSinhVatLenGeoServer(
   nguyCap,
 ) {
   const WORKSPACE = "angiang";
-  const geomXml = `<${WORKSPACE}:geom><gml:Point srsName="EPSG:4326"><gml:coordinates>${kinhDo},${viDo}</gml:coordinates></gml:Point></${WORKSPACE}:geom>`;
+  const WORKSPACE_URI = "http://angiang.vn";
+
+  // ✅ khóa lại để tránh gửi layer bậy bạ
+  const allowed = new Set(["dongvat", "thucvat"]);
+  if (!allowed.has(String(tenBang))) {
+    alert("❌ Layer sinh vật không hợp lệ!");
+    return;
+  }
+
+  const x = Number(kinhDo);
+  const y = Number(viDo);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    alert("❌ Kinh độ/Vĩ độ không hợp lệ!");
+    return;
+  }
+
+  const geomXml =
+    `<${WORKSPACE}:geom>` +
+    `<gml:Point srsName="EPSG:4326">` +
+    `<gml:coordinates>${x},${y}</gml:coordinates>` +
+    `</gml:Point>` +
+    `</${WORKSPACE}:geom>`;
+
   const wfsTransaction = `
-        <wfs:Transaction service="WFS" version="1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:${WORKSPACE}="http://angiang.vn">
-            <wfs:Insert>
-                <${WORKSPACE}:${tenBang}>
-                    ${geomXml}
-                    <${WORKSPACE}:ten_loai>${ten}</${WORKSPACE}:ten_loai>
-                    <${WORKSPACE}:phan_loai>${phanLoai}</${WORKSPACE}:phan_loai>
-                    <${WORKSPACE}:nhom>${nhom}</${WORKSPACE}:nhom>
-                    <${WORKSPACE}:vi_tri_phan_bo>${viTri}</${WORKSPACE}:vi_tri_phan_bo>
-                    <${WORKSPACE}:muc_do_nguy_cap>${nguyCap}</${WORKSPACE}:muc_do_nguy_cap>
-                </${WORKSPACE}:${tenBang}>
-            </wfs:Insert>
-        </wfs:Transaction>`;
+    <wfs:Transaction service="WFS" version="1.0.0"
+      xmlns:wfs="http://www.opengis.net/wfs"
+      xmlns:gml="http://www.opengis.net/gml"
+      xmlns:${WORKSPACE}="${WORKSPACE_URI}">
+      <wfs:Insert>
+        <${WORKSPACE}:${tenBang}>
+          ${geomXml}
+          <${WORKSPACE}:ten_loai>${xmlEscape(ten)}</${WORKSPACE}:ten_loai>
+          <${WORKSPACE}:phan_loai>${xmlEscape(phanLoai)}</${WORKSPACE}:phan_loai>
+          <${WORKSPACE}:nhom>${xmlEscape(nhom)}</${WORKSPACE}:nhom>
+          <${WORKSPACE}:vi_tri_phan_bo>${xmlEscape(viTri)}</${WORKSPACE}:vi_tri_phan_bo>
+          <${WORKSPACE}:muc_do_nguy_cap>${xmlEscape(nguyCap)}</${WORKSPACE}:muc_do_nguy_cap>
+${wfInsertMetaXml(WORKSPACE)}
+</${WORKSPACE}:${tenBang}>
+      </wfs:Insert>
+    </wfs:Transaction>`;
+
+  console.log("WFST INSERT SINHVAT XML:", wfsTransaction);
 
   postWFST("insert", `${WORKSPACE}:${tenBang}`, wfsTransaction)
     .then((data) => {
-      if (data.includes("Exception") || data.includes("Error")) {
-        alert("Lỗi Sinh Vật! Đọc F12 xem chi tiết!");
+      console.log("WFST INSERT SINHVAT RESPONSE:", data);
+      if (wfstHasError(data)) {
+        alert("❌ GeoServer trả lỗi. Mở F12 xem WFST RESPONSE!");
         console.log(data);
-      } else {
-        alert("Đã lưu Sinh Vật thành công!");
-        drawnItems.clearLayers();
+        return;
       }
+      const ins = wfstTotalInserted(data);
+      if (ins === 0) {
+        alert(
+          "❌ Không insert được bản ghi (totalInserted=0). Mở F12 xem RESPONSE!",
+        );
+        console.log(data);
+        return;
+      }
+      alert("✅ Đã lưu thành công!");
+      drawnItems.clearLayers();
     })
     .catch((e) => {
       alert("❌ Insert thất bại: " + e.message);
@@ -1388,79 +1604,194 @@ const inpSearch = document.getElementById("inpSearch");
 const btnSearch = document.getElementById("btnSearch");
 const searchResults = document.getElementById("searchResults");
 
-function thucThiTimKiem() {
-  var query = inpSearch.value.trim();
-  if (!query) return;
+// ✅ Helper: bỏ dấu + viết thường (để nhận "rung" = "rừng" khi tìm theo loại tài nguyên)
+function boDauVaThuong(s = "") {
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
 
-  // 1. Mở rộng tìm kiếm: Tìm cả theo Tên và Loại/Phân loại
+// ✅ Helper: chọn field hiển thị đẹp nhất cho từng lớp
+function chonGiaTriDauTien(props, fields) {
+  for (const f of fields) {
+    const v = props?.[f];
+    if (v !== null && v !== undefined && String(v).trim() !== "")
+      return String(v);
+  }
+  return "";
+}
+
+function thucThiTimKiem() {
+  const queryRaw = inpSearch.value.trim();
+  if (!queryRaw) return;
+
+  const queryNorm = boDauVaThuong(queryRaw);
+  // Escape nháy đơn cho CQL (tránh lỗi khi người dùng gõ ký tự ')
+  const qCql = queryRaw.replace(/'/g, "''");
+
+  const MAX_PER_LAYER = 200; // tăng/giảm tuỳ dữ liệu
+
+  // 1) Cấu hình: tìm theo thuộc tính + cho phép "tìm theo loại/lớp tài nguyên"
   const cacLopCanTim = [
     {
+      typeKey: "dongvat",
       layer: "angiang:dongvat",
-      cols: ["ten_loai", "phan_loai"],
+      cols: ["nhom", "ten_loai"],
+      nameFields: ["ten_loai", "nhom", "phan_loai"],
       label: "Động vật",
+      keywords: ["dong vat", "động vật", "animal"],
     },
     {
+      typeKey: "thucvat",
       layer: "angiang:thucvat",
-      cols: ["ten_loai", "phan_loai"],
+      cols: ["nhom", "ten_loai"],
+      nameFields: ["ten_loai", "nhom", "phan_loai"],
       label: "Thực vật",
+      keywords: ["thuc vat", "thực vật", "plant"],
     },
-    { layer: "angiang:rung", cols: ["ten", "loai_rung"], label: "Rừng" },
-    { layer: "angiang:dat", cols: ["ten", "loai_dat_su_dung"], label: "Đất" },
-    { layer: "angiang:waterways", cols: ["ten", "loai"], label: "Nước" },
     {
+      typeKey: "rung",
+      layer: "angiang:rung",
+      cols: ["ten", "loai_rung"],
+      nameFields: ["ten", "loai_rung"],
+      label: "Rừng",
+      keywords: ["rung", "rừng", "forest"],
+    },
+    {
+      typeKey: "dat",
+      layer: "angiang:dat",
+      cols: ["ten", "nhom_su_dung"],
+      nameFields: ["ten", "nhom_su_dung", "loai_dat_su_dung"],
+      label: "Đất",
+      keywords: ["dat", "đất", "land"],
+    },
+    {
+      typeKey: "nuoc",
+      layer: "angiang:waterways",
+      cols: ["ten", "loai"],
+      nameFields: ["ten", "loai"],
+      label: "Nước",
+      keywords: ["nuoc", "nước", "song", "suoi", "river", "water"],
+    },
+    {
+      typeKey: "khoangsan",
       layer: "angiang:khoangsan_diem_mo",
       cols: ["ten_don_vi", "loai_khoang_san"],
+      nameFields: ["ten_don_vi", "loai_khoang_san"],
       label: "Khoáng sản",
+      keywords: ["khoang san", "khoáng sản", "mo", "mỏ", "mine", "mineral"],
     },
   ];
+
+  // ✅ Nhận diện: người dùng đang tìm theo "lớp/loại tài nguyên" hay theo "thuộc tính"
+  const isTypeMatch = (cfg) => {
+    const labelNorm = boDauVaThuong(cfg.label);
+    if (queryNorm === labelNorm) return true;
+    if (queryNorm === boDauVaThuong(cfg.typeKey)) return true;
+    if (
+      Array.isArray(cfg.keywords) &&
+      cfg.keywords.some((k) => boDauVaThuong(k) === queryNorm)
+    )
+      return true;
+    return false;
+  };
+
+  const lopTheoLoai = cacLopCanTim.filter(isTypeMatch);
+  const targets = lopTheoLoai.length ? lopTheoLoai : cacLopCanTim;
 
   searchResults.classList.remove("hidden");
   searchResults.innerHTML =
     "<div class='search-item'>⏳ Đang tìm kiếm...</div>";
 
-  const promises = cacLopCanTim.map((config) => {
-    let filter = config.cols.map((c) => `${c} ILIKE '%${query}%'`).join(" OR ");
-    let url = `/myproxy/angiang/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${config.layer}&outputFormat=application/json&CQL_FILTER=${encodeURIComponent(filter)}`;
+  const promises = targets.map((cfg) => {
+    const urlBase =
+      `/myproxy/angiang/ows?service=WFS&version=1.0.0&request=GetFeature` +
+      `&typeName=${cfg.layer}&outputFormat=application/json&maxFeatures=${MAX_PER_LAYER}`;
+
+    // Nếu đang tìm theo loại tài nguyên (vd: gõ "rừng") => lấy tất cả đối tượng của lớp đó (giới hạn MAX_PER_LAYER)
+    // Nếu tìm theo thuộc tính => dùng CQL_FILTER như cũ
+    let url = urlBase;
+    if (!lopTheoLoai.length) {
+      const filter = cfg.cols.map((c) => `${c} ILIKE '%${qCql}%'`).join(" OR ");
+      url = urlBase + `&CQL_FILTER=${encodeURIComponent(filter)}`;
+    }
 
     return fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (!data.features) return [];
-        return data.features.map((f) => ({
-          ten:
-            f.properties.ten ||
-            f.properties.ten_don_vi ||
-            f.properties.ten_loai ||
-            "Không xác định",
-          loai: config.label,
-          feature: f,
-        }));
+        const feats = Array.isArray(data.features) ? data.features : [];
+        return feats.map((f) => {
+          const tenHienThi =
+            chonGiaTriDauTien(f.properties, cfg.nameFields) || "Không xác định";
+          return { ten: tenHienThi, loai: cfg.label, feature: f };
+        });
       })
       .catch(() => []);
   });
 
   Promise.all(promises).then((mangKetQua) => {
     let tatCaKetQua = mangKetQua.flat();
+
+    // ✅ Lọc trùng (nếu có)
+    const seen = new Set();
+    tatCaKetQua = tatCaKetQua.filter((it) => {
+      const fid = it.feature?.id ?? it.feature?.properties?.id ?? it.ten;
+      const key = `${it.loai}|${fid}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // ✅ Sắp xếp: item có tên chứa query đứng trước (khi tìm theo thuộc tính)
+    if (!lopTheoLoai.length) {
+      const qn = boDauVaThuong(queryRaw);
+      tatCaKetQua.sort((a, b) => {
+        const an = boDauVaThuong(a.ten);
+        const bn = boDauVaThuong(b.ten);
+        const as = an.includes(qn) ? 1 : 0;
+        const bs = bn.includes(qn) ? 1 : 0;
+        return bs - as;
+      });
+    }
+
     searchResults.innerHTML = "";
 
     if (tatCaKetQua.length === 0) {
       searchResults.innerHTML =
         "<div class='search-item' style='color:#d32f2f;'>❌ Không tìm thấy kết quả!</div>";
-    } else {
-      tatCaKetQua.forEach((item) => {
-        var div = document.createElement("div");
+      return;
+    }
+
+    // ✅ Render theo nhóm tài nguyên (nhìn đỡ “sai lệch”)
+    const group = new Map();
+    tatCaKetQua.forEach((it) => {
+      if (!group.has(it.loai)) group.set(it.loai, []);
+      group.get(it.loai).push(it);
+    });
+
+    group.forEach((items, loai) => {
+      const header = document.createElement("div");
+      header.className = "search-item search-header";
+      header.innerHTML = `📌 ${loai} <small>(${items.length} kết quả)</small>`;
+      searchResults.appendChild(header);
+
+      items.forEach((item) => {
+        const div = document.createElement("div");
         div.className = "search-item";
         div.innerHTML = `<b>${item.ten}</b><small>Tài nguyên: ${item.loai}</small>`;
 
         div.addEventListener("click", function () {
-          var geojsonLayer = L.geoJSON(item.feature);
-          var tamDiem = geojsonLayer.getBounds().getCenter();
+          const geojsonLayer = L.geoJSON(item.feature);
+          const tamDiem = geojsonLayer.getBounds().getCenter();
           map.flyTo(tamDiem, 15, { duration: 1.5 });
 
           setTimeout(() => {
-            // 🌟 2. BÍ QUYẾT Ở ĐÂY: Vòng lặp in ra toàn bộ thông tin trong Popup
-            let props = item.feature.properties;
-            let popupContent = `<div class="info-popup"><h4 style="margin-top:0; color:#2e7d32; border-bottom:2px solid #4caf50; padding-bottom:5px;">${item.ten}</h4>`;
+            const props = item.feature.properties || {};
+            let popupContent =
+              `<div class="info-popup">` +
+              `<h4 style="margin-top:0; color:#2e7d32; border-bottom:2px solid #4caf50; padding-bottom:5px;">${item.ten}</h4>`;
 
             for (let key in props) {
               if (
@@ -1470,19 +1801,29 @@ function thucThiTimKiem() {
                 props[key] !== null &&
                 props[key] !== ""
               ) {
-                let tenDep = TU_DIEN_COT[key] || key; // Dịch tên cột sang tiếng Việt
-                popupContent += `<p style="margin:6px 0; font-size:13px;"><b>${tenDep}:</b> <span class="val-display">${props[key]}</span></p>`;
+                const tenDep = TU_DIEN_COT[key] || key;
+                popupContent +=
+                  `<p style="margin:6px 0; font-size:13px;">` +
+                  `<b>${tenDep}:</b> <span class="val-display">${props[key]}</span></p>`;
               }
             }
             popupContent += `</div>`;
-
             L.popup().setLatLng(tamDiem).setContent(popupContent).openOn(map);
           }, 1500);
 
           searchResults.classList.add("hidden");
         });
+
         searchResults.appendChild(div);
       });
+    });
+
+    // Gợi ý khi user tìm theo loại và dữ liệu quá nhiều
+    if (lopTheoLoai.length && tatCaKetQua.length >= MAX_PER_LAYER) {
+      const tip = document.createElement("div");
+      tip.className = "search-item search-tip";
+      tip.innerHTML = `ℹ️ Đang hiển thị tối đa ${MAX_PER_LAYER} kết quả. Muốn “đủ hết” thì tăng MAX_PER_LAYER hoặc bổ sung phân trang.`;
+      searchResults.appendChild(tip);
     }
   });
 }

@@ -150,6 +150,24 @@ body {
   background: #e8f5e9 !important;
   color: #2e7d32 !important;
 }
+.search-header {
+  cursor: default;
+  background: #f3f6f3 !important;
+  font-weight: 700;
+}
+.search-header:hover {
+  background: #f3f6f3 !important;
+  color: #333 !important;
+}
+
+.search-tip {
+  cursor: default;
+  color: #666 !important;
+}
+.search-tip:hover {
+  background: white !important;
+  color: #666 !important;
+}
 .search-item b {
   font-size: 14px;
   color: #000 !important;

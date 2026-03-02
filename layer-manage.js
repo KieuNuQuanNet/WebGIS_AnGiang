@@ -38,8 +38,21 @@ async function api(path, opt = {}) {
         : opt.headers?.["Content-Type"] || undefined,
     },
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.message || "API error");
+
+  const text = await r.text(); // ✅ để không bị “json parse fail” che mất lỗi
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!r.ok) {
+    console.error("API FAIL:", path, data);
+    const msg =
+      (data.message || "API error") + (data.detail ? ` | ${data.detail}` : "");
+    throw new Error(msg);
+  }
   return data;
 }
 

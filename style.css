@@ -310,6 +310,7 @@ body {
 /* 👉 THẦN CHÚ: Phá vỡ bức tường giới hạn chiều cao của Leaflet để hiện Full Form */
 .leaflet-popup-content,
 .leaflet-popup-content-wrapper {
+  width: 340px;
   max-height: none !important;
 }
 

@@ -350,7 +350,18 @@ const TU_DIEN_COT = {
   nguon_du_lieu: "Nguồn dữ liệu",
   nguon: "Nguồn tham khảo",
 };
-
+const WF_SYSTEM_FIELDS = new Set([
+  "trang_thai_du_lieu",
+  "ngay_tao",
+  "nguoi_tao",
+  "ngay_cap_nhat",
+  "nguoi_cap_nhat",
+  "ngay_phe_duyet",
+  "nguoi_phe_duyet",
+  "ngay_cong_bo",
+  "nguoi_cong_bo",
+  "ly_do_tu_choi",
+]);
 // =====================================================================
 // GIAI ĐOẠN 2: CLICK LẤY THÔNG TIN & SỬA XÓA (WFS GETFEATURE & WFS-T)
 // =====================================================================
@@ -487,6 +498,7 @@ map.on("click", function (e) {
           key !== "bbox" &&
           key !== "geom" &&
           key !== "id" &&
+          !WF_SYSTEM_FIELDS.has(key) &&
           props[key] !== null &&
           props[key] !== ""
         ) {
@@ -538,7 +550,12 @@ function moFormSuaDoi(blockElement, layerName, featureId, props, layerObj) {
 
   // 👉 DÙNG TỪ ĐIỂN ĐỂ IN RA TÊN ĐẸP CHO FORM SỬA
   for (var key in props) {
-    if (key !== "bbox" && key !== "geom" && key !== "id") {
+    if (
+      key !== "bbox" &&
+      key !== "geom" &&
+      key !== "id" &&
+      !WF_SYSTEM_FIELDS.has(key)
+    ) {
       var tenHienThi = TU_DIEN_COT[key] || key;
       formHtml += `
               <div class="wfs-form-group">
@@ -573,8 +590,34 @@ function moFormSuaDoi(blockElement, layerName, featureId, props, layerObj) {
 
       // Càn quét qua tất cả các ô Input để lấy chữ mới, dùng 'data-key' để đưa về tên cột Postgres gốc
       blockElement.querySelectorAll(".edit-input").forEach((input) => {
-        updatedProps[input.getAttribute("data-key")] = input.value;
+        const k = input.getAttribute("data-key");
+        if (!k || WF_SYSTEM_FIELDS.has(k)) return;
+        updatedProps[k] = input.value;
       });
+
+      // ✅ Audit tự động khi sửa
+      updatedProps["ngay_cap_nhat"] = nowIsoNoTZ();
+      const uid = getUserIdFromToken();
+      if (uid !== null) updatedProps["nguoi_cap_nhat"] = String(uid);
+
+      // ✅ QUAN TRỌNG: sửa xong phải đưa về chờ duyệt để admin quyết định có công bố lại không
+      const roles = (
+        JSON.parse(localStorage.getItem("webgis_roles") || "[]") || []
+      ).map((r) => String(r).toLowerCase());
+      const perms = (
+        JSON.parse(
+          localStorage.getItem("webgis_permissions") ||
+            localStorage.getItem("webgis_perms") ||
+            "[]",
+        ) || []
+      ).map((p) => String(p).toLowerCase());
+      const isAdmin =
+        roles.includes("admin") ||
+        perms.includes("feature.approve") ||
+        perms.includes("feature.publish") ||
+        perms.includes("admin");
+
+      updatedProps["trang_thai_du_lieu"] = isAdmin ? "nhap" : "cho_duyet";
 
       suaDuLieuWFS(layerName, featureId, updatedProps, layerObj);
     });
@@ -591,7 +634,20 @@ const API_BASE = "http://localhost:3000";
 function getToken() {
   return localStorage.getItem("webgis_token") || "";
 }
-
+function getUserIdFromToken() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const base64Url = token.split(".")[1] || "";
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "===".slice((base64.length + 3) % 4);
+    const payload = JSON.parse(atob(padded));
+    const sub = payload?.sub;
+    return Number.isFinite(Number(sub)) ? Number(sub) : null;
+  } catch {
+    return null;
+  }
+}
 // ====== PERMISSIONS (ẩn/hiện UI theo quyền) ======
 function getPerms() {
   try {
@@ -652,11 +708,22 @@ function nowIsoNoTZ() {
 // ✅ workflow mặc định cho record mới: NHẬP
 function wfInsertMetaXml(nsPrefix) {
   const now = nowIsoNoTZ();
+  const uid = getUserIdFromToken();
+  const uidXml = uid
+    ? `
+    <${nsPrefix}:nguoi_tao>${uid}</${nsPrefix}:nguoi_tao>
+    <${nsPrefix}:nguoi_cap_nhat>${uid}</${nsPrefix}:nguoi_cap_nhat>
+  `
+    : "";
+
+  const st = hasPerm("admin.users") ? "nhap" : "cho_duyet"; // ✅ admin=nhap, cán bộ=cho_duyet
+
   return `
-    <${nsPrefix}:trang_thai_du_lieu>nhap</${nsPrefix}:trang_thai_du_lieu>
-    <${nsPrefix}:ngay_tao>${now}</${nsPrefix}:ngay_tao>
-    <${nsPrefix}:ngay_cap_nhat>${now}</${nsPrefix}:ngay_cap_nhat>
-  `;
+  <${nsPrefix}:trang_thai_du_lieu>${st}</${nsPrefix}:trang_thai_du_lieu>
+  <${nsPrefix}:ngay_tao>${now}</${nsPrefix}:ngay_tao>
+  ${uidXml}
+  <${nsPrefix}:ngay_cap_nhat>${now}</${nsPrefix}:ngay_cap_nhat>
+`;
 }
 
 // ✅ check WFST response chuẩn hơn (tránh báo “thành công” giả)

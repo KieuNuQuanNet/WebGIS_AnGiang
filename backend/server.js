@@ -561,7 +561,7 @@ app.get(
       const page = Math.max(Number(req.query.page || 1), 1);
       const offset = (page - 1) * limit;
 
-      const labelCol = await pickLabelColumn(table);
+      const labelCol = meta.labelCol || (await pickLabelColumn(table));
 
       const where = [];
       const params = [];
@@ -873,30 +873,56 @@ app.get(
       const q = (req.query.q || "").toString().trim();
       const limit = Math.min(Number(req.query.limit || 200), 1000);
 
+      // label “thông minh” không phụ thuộc cột có tồn tại hay không
+      const labelExpr = `
+  COALESCE(
+    to_jsonb(t)->>'ten_tai_nguyen',
+    to_jsonb(t)->>'ten',
+    to_jsonb(t)->>'ten_don_vi',
+    to_jsonb(t)->>'ten_khoang_san',
+    to_jsonb(t)->>'ten_loai',
+    to_jsonb(t)->>'name',
+    ('ID '||t.id::text)
+  )
+`;
+
+      // tạo UNION ALL từ LAYER_META
+      const parts = Object.entries(LAYER_META).map(
+        ([layer, meta]) => `
+  SELECT
+    t.id,
+    ${labelExpr} AS ten_tai_nguyen,
+    '${layer}'::text AS ma_lop,
+    t.trang_thai_du_lieu,
+    t.ly_do_tu_choi,
+    t.ngay_tao, t.nguoi_tao,
+    t.ngay_cap_nhat, t.nguoi_cap_nhat,
+    t.ngay_phe_duyet, t.nguoi_phe_duyet,
+    t.ngay_cong_bo, t.nguoi_cong_bo
+  FROM public.${meta.table} t
+`,
+      );
+
       const sql = `
-        SELECT
-          l.id,
-          l.ten_tai_nguyen,
-          l.ma_lop,
-          l.trang_thai_du_lieu,
-          l.ly_do_tu_choi,
-          l.ngay_tao, l.nguoi_tao,
-          l.ngay_cap_nhat, l.nguoi_cap_nhat,
-          l.ngay_phe_duyet, l.nguoi_phe_duyet,
-          l.ngay_cong_bo, l.nguoi_cong_bo,
-          u1.ho_ten AS ten_nguoi_tao,
-          u2.ho_ten AS ten_nguoi_cap_nhat,
-          u3.ho_ten AS ten_nguoi_phe_duyet,
-          u4.ho_ten AS ten_nguoi_cong_bo
-        FROM public.lich_su_cap_nhat l
-        LEFT JOIN public.tai_khoan u1 ON u1.id = l.nguoi_tao
-        LEFT JOIN public.tai_khoan u2 ON u2.id = l.nguoi_cap_nhat
-        LEFT JOIN public.tai_khoan u3 ON u3.id = l.nguoi_phe_duyet
-        LEFT JOIN public.tai_khoan u4 ON u4.id = l.nguoi_cong_bo
-        WHERE ($1 = '' OR l.ten_tai_nguyen ILIKE '%'||$1||'%' OR l.ma_lop ILIKE '%'||$1||'%')
-        ORDER BY COALESCE(l.ngay_cong_bo, l.ngay_phe_duyet, l.ngay_cap_nhat, l.ngay_tao) DESC NULLS LAST
-        LIMIT $2;
-      `;
+  WITH x AS (
+    ${parts.join("\nUNION ALL\n")}
+  )
+  SELECT
+    x.*,
+    u1.ho_ten AS ten_nguoi_tao,
+    u2.ho_ten AS ten_nguoi_cap_nhat,
+    u3.ho_ten AS ten_nguoi_phe_duyet,
+    u4.ho_ten AS ten_nguoi_cong_bo
+  FROM x
+  LEFT JOIN public.tai_khoan u1 ON u1.id = x.nguoi_tao
+  LEFT JOIN public.tai_khoan u2 ON u2.id = x.nguoi_cap_nhat
+  LEFT JOIN public.tai_khoan u3 ON u3.id = x.nguoi_phe_duyet
+  LEFT JOIN public.tai_khoan u4 ON u4.id = x.nguoi_cong_bo
+  WHERE ($1 = '' OR x.ten_tai_nguyen ILIKE '%'||$1||'%' OR x.ma_lop ILIKE '%'||$1||'%')
+  ORDER BY COALESCE(x.ngay_cong_bo, x.ngay_phe_duyet, x.ngay_cap_nhat, x.ngay_tao) DESC NULLS LAST
+  LIMIT $2;
+`;
+
       const { rows } = await pool.query(sql, [q, limit]);
       return res.json(rows);
     } catch (e) {
@@ -970,8 +996,16 @@ const LAYER_META = {
 
   // ✅ layer name trên map là "dongvat" / "thucvat"
   // table vẫn giữ như bạn đang dùng trong DB (ag) nếu đó là tên bảng thật
-  "angiang:thucvat": { table: "thucvat_ag", label: "Thực vật" },
-  "angiang:dongvat": { table: "dongvat_ag", label: "Động vật" },
+  "angiang:thucvat": {
+    table: "thucvat_ag",
+    label: "Thực vật",
+    labelCol: "ten_loai",
+  },
+  "angiang:dongvat": {
+    table: "dongvat_ag",
+    label: "Động vật",
+    labelCol: "ten_loai",
+  },
 
   "angiang:waterways": { table: "waterways", label: "Sông ngòi" },
 };

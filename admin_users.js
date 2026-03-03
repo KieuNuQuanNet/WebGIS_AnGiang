@@ -1,73 +1,4 @@
-const API_BASE = "http://localhost:3000";
-
-function getToken() {
-  return localStorage.getItem("webgis_token") || "";
-}
-function getRoles() {
-  try {
-    return JSON.parse(localStorage.getItem("webgis_roles") || "[]");
-  } catch {
-    return [];
-  }
-}
-function getPerms() {
-  try {
-    return JSON.parse(
-      localStorage.getItem("webgis_permissions") ||
-        localStorage.getItem("webgis_perms") ||
-        "[]",
-    );
-  } catch {
-    return [];
-  }
-}
-
-function isAdmin() {
-  const roles = getRoles();
-  const perms = getPerms();
-  return roles.includes("admin") || perms.includes("admin.users");
-}
-
-async function api(path, opts = {}) {
-  const token = getToken();
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(opts.headers || {}),
-    },
-  });
-
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = text;
-  }
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      // token hết hạn / sai -> đá về login
-      [
-        "webgis_token",
-        "webgis_roles",
-        "webgis_permissions",
-        "webgis_perms",
-        "webgis_role",
-        "webgis_user",
-      ].forEach((k) => localStorage.removeItem(k));
-      window.location.href = "login.html";
-      return;
-    }
-    const msg = typeof data === "object" ? data.message || text : text;
-    throw new Error(msg);
-  }
-
-  return data;
-}
+const api = apiJSON; // dùng từ common.js
 
 function badgeStatus(status) {
   if (status === "hoat_dong")
@@ -90,14 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnLogout = document.getElementById("btnLogout");
   if (btnLogout) {
     btnLogout.onclick = () => {
-      [
-        "webgis_token",
-        "webgis_roles",
-        "webgis_permissions",
-        "webgis_perms",
-        "webgis_role",
-        "webgis_user",
-      ].forEach((k) => localStorage.removeItem(k));
+      clearAuth();
       window.location.href = "login.html";
     };
   }
@@ -223,7 +147,7 @@ function renderTable(users) {
       <td><select data-id="${u.id}" class="selRole">${roleOptions}</select></td>
       <td>
         <select data-id="${u.id}" class="selStatus">${statusOptions}</select>
-        <div style="margin-top:6px">${badgeStatus(u.trang_thai)}</div>
+        <div class="mt-6">${badgeStatus(u.trang_thai)}</div>
       </td>
       <td>
         <div class="row-actions">
@@ -245,11 +169,11 @@ function renderTable(users) {
       try {
         await api(`/api/admin/users/${id}/roles`, {
           method: "PUT",
-          body: JSON.stringify({ roles: [role] }),
+          body: { roles: [role] },
         });
         await api(`/api/admin/users/${id}/status`, {
           method: "PATCH",
-          body: JSON.stringify({ trang_thai: status }),
+          body: { trang_thai: status },
         });
         await loadData();
         alert("✅ Đã lưu thay đổi!");

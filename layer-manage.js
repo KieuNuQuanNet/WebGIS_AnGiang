@@ -1,86 +1,7 @@
-const API_BASE = "http://localhost:3000";
-
-function token() {
-  return localStorage.getItem("webgis_token") || "";
-}
-function getRoles() {
-  try {
-    return JSON.parse(localStorage.getItem("webgis_roles") || "[]");
-  } catch {
-    return [];
-  }
-}
-function getPerms() {
-  try {
-    return JSON.parse(
-      localStorage.getItem("webgis_permissions") ||
-        localStorage.getItem("webgis_perms") ||
-        "[]",
-    );
-  } catch {
-    return [];
-  }
-}
-function isAdmin() {
-  const r = getRoles().map((x) => String(x).toLowerCase());
-  const p = getPerms();
-  return r.includes("admin") || p.includes("admin.users");
-}
-
-async function api(path, opt = {}) {
-  const r = await fetch(API_BASE + path, {
-    ...opt,
-    headers: {
-      ...(opt.headers || {}),
-      Authorization: "Bearer " + token(),
-      "Content-Type": opt.body
-        ? "application/json"
-        : opt.headers?.["Content-Type"] || undefined,
-    },
-  });
-
-  const text = await r.text(); // ✅ để không bị “json parse fail” che mất lỗi
-  let data = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { raw: text };
-  }
-
-  if (!r.ok) {
-    console.error("API FAIL:", path, data);
-    const msg =
-      (data.message || "API error") + (data.detail ? ` | ${data.detail}` : "");
-    throw new Error(msg);
-  }
-  return data;
-}
-
-function fmt(dt) {
-  if (!dt) return "";
-  const d = new Date(dt);
-  return isNaN(d.getTime()) ? "" : d.toLocaleString("vi-VN");
-}
-function esc(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
-  );
-}
-
-const statusLabel = {
-  nhap: "Nhập",
-  cho_duyet: "Chờ duyệt",
-  da_duyet: "Đã duyệt",
-  cong_bo: "Công bố",
-  tu_choi: "Từ chối",
-};
+const api = apiJSON; // dùng từ common.js
 
 document.addEventListener("DOMContentLoaded", async () => {
-  if (!token()) return (location.href = "login.html");
+  if (!getToken()) return (location.href = "login.html");
   if (!isAdmin()) return (location.href = "index.html");
 
   document.getElementById("helloUser").textContent =
@@ -104,14 +25,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadLayers();
   await load();
 });
-
-function debounce(fn, ms) {
-  let t;
-  return () => {
-    clearTimeout(t);
-    t = setTimeout(fn, ms);
-  };
-}
 
 async function loadLayers() {
   const sel = document.getElementById("layerSelect");

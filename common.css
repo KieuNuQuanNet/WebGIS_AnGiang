@@ -1,0 +1,35 @@
+/* common.css - utility nhỏ để bỏ inline style */
+.hidden {
+  display: none !important;
+}
+.text-center {
+  text-align: center;
+}
+.mt-6 {
+  margin-top: 6px;
+}
+.mr-10 {
+  margin-right: 10px;
+}
+
+.w-70 {
+  width: 70px;
+}
+.w-90 {
+  width: 90px;
+}
+.w-130 {
+  width: 130px;
+}
+.w-170 {
+  width: 170px;
+}
+.w-180 {
+  width: 180px;
+}
+.w-200 {
+  width: 200px;
+}
+.w-220 {
+  width: 220px;
+}

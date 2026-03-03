@@ -758,59 +758,6 @@ function moFormSuaDoi(blockElement, layerName, featureId, props, layerObj) {
 // =====================================================================
 const API_BASE = "http://localhost:3000";
 
-function getToken() {
-  return localStorage.getItem("webgis_token") || "";
-}
-function getUserIdFromToken() {
-  const token = getToken();
-  if (!token) return null;
-  try {
-    const base64Url = token.split(".")[1] || "";
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "===".slice((base64.length + 3) % 4);
-    const payload = JSON.parse(atob(padded));
-    const sub = payload?.sub;
-    return Number.isFinite(Number(sub)) ? Number(sub) : null;
-  } catch {
-    return null;
-  }
-}
-// ====== PERMISSIONS (ẩn/hiện UI theo quyền) ======
-function getPerms() {
-  try {
-    return JSON.parse(
-      localStorage.getItem("webgis_permissions") ||
-        localStorage.getItem("webgis_perms") ||
-        "[]",
-    );
-  } catch {
-    return [];
-  }
-}
-
-function hasPerm(perm) {
-  // guest => không có token => không có quyền
-  if (!getToken()) return false;
-  return getPerms().includes(perm);
-}
-
-function applyPermUI() {
-  // Tự ẩn/hiện mọi element có data-perm
-  document.querySelectorAll("[data-perm]").forEach((el) => {
-    const p = el.getAttribute("data-perm");
-    el.style.display = hasPerm(p) ? "" : "none";
-  });
-
-  // Dọn menu/panel nếu guest
-  if (!hasPerm("feature.insert")) {
-    document.getElementById("danhSachTaiNguyen")?.classList.add("hidden");
-  }
-  if (!hasPerm("stats.view")) {
-    document.getElementById("danhSachThongKe")?.classList.add("hidden");
-    document.getElementById("panelThongKe")?.classList.add("hidden");
-  }
-}
-
 // vì script.js load cuối trang nên gọi thẳng được
 applyPermUI();
 function xmlEscape(v) {
@@ -885,71 +832,7 @@ async function postWFST(action, layer, xml) {
   return text;
 }
 
-// Navbar: Đăng nhập ↔ Đăng xuất + Admin: Quản lý tài khoản
-(function initAuthNav() {
-  const navAuth = document.getElementById("navAuth"); // <a id="navAuth">
-  const navUser = document.getElementById("navUser"); // <span id="navUser">
-  const navAdmin = document.getElementById("navAdminUsers"); // <a id="navAdminUsers">
-  if (!navAuth) return;
-
-  function readJSON(key, fallback) {
-    try {
-      return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-    } catch {
-      return fallback;
-    }
-  }
-
-  function isAdmin() {
-    const roles = readJSON("webgis_roles", []);
-    const perms = readJSON("webgis_permissions", readJSON("webgis_perms", []));
-    return roles.includes("admin") || perms.includes("admin.users");
-  }
-
-  function refresh() {
-    const token = localStorage.getItem("webgis_token");
-    const logged = !!token;
-
-    // Hiển thị tên user
-    if (navUser) {
-      if (logged) {
-        navUser.style.display = "inline";
-        navUser.textContent = `👤 ${localStorage.getItem("webgis_user") || "User"}`;
-      } else {
-        navUser.style.display = "none";
-        navUser.textContent = "";
-      }
-    }
-
-    // Link admin
-    if (navAdmin)
-      navAdmin.style.display = logged && isAdmin() ? "inline" : "none";
-
-    // Nút đăng nhập/đăng xuất
-    if (logged) {
-      navAuth.textContent = "Đăng xuất";
-      navAuth.href = "#";
-      navAuth.onclick = (e) => {
-        e.preventDefault();
-        [
-          "webgis_token",
-          "webgis_roles",
-          "webgis_permissions",
-          "webgis_perms",
-          "webgis_role",
-          "webgis_user",
-        ].forEach((k) => localStorage.removeItem(k));
-        window.location.href = "index.html";
-      };
-    } else {
-      navAuth.textContent = "Đăng nhập";
-      navAuth.href = "login.html";
-      navAuth.onclick = null;
-    }
-  }
-
-  refresh();
-})();
+initAuthNav();
 
 function suaDuLieuWFS(layerName, featureId, updatedProps, layerObj) {
   const workspace = layerName.split(":")[0];

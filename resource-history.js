@@ -1,63 +1,4 @@
-const API_BASE = "http://localhost:3000";
-
-function getToken() {
-  return localStorage.getItem("webgis_token") || "";
-}
-
-function getRoles() {
-  try {
-    return JSON.parse(localStorage.getItem("webgis_roles") || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function getPerms() {
-  try {
-    return JSON.parse(
-      localStorage.getItem("webgis_permissions") ||
-        localStorage.getItem("webgis_perms") ||
-        "[]",
-    );
-  } catch {
-    return [];
-  }
-}
-
-function isAdmin() {
-  const roles = getRoles().map((x) => String(x).toLowerCase());
-  const perms = getPerms();
-  return roles.includes("admin") || perms.includes("admin.users");
-}
-
-async function api(path) {
-  const r = await fetch(API_BASE + path, {
-    headers: { Authorization: "Bearer " + getToken() },
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.message || "API error");
-  return data;
-}
-
-function fmt(dt) {
-  if (!dt) return "";
-  const d = new Date(dt);
-  return isNaN(d.getTime()) ? "" : d.toLocaleString("vi-VN");
-}
-
-function esc(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c],
-  );
-}
+const api = apiJSON;
 
 function statusBadge(st) {
   const s = String(st || "").toLowerCase();
@@ -95,14 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   document.getElementById("btnLogout")?.addEventListener("click", () => {
-    [
-      "webgis_token",
-      "webgis_roles",
-      "webgis_permissions",
-      "webgis_perms",
-      "webgis_role",
-      "webgis_user",
-    ].forEach((k) => localStorage.removeItem(k));
+    clearAuth();
     window.location.href = "login.html";
   });
 
@@ -111,14 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await load();
 });
-
-function debounce(fn, ms) {
-  let t;
-  return () => {
-    clearTimeout(t);
-    t = setTimeout(fn, ms);
-  };
-}
 
 async function load() {
   const tbody = document.getElementById("tbody");

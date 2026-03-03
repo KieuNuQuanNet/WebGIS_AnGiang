@@ -1991,6 +1991,9 @@ function thucThiTimKiem() {
         div.addEventListener("click", function () {
           const geojsonLayer = L.geoJSON(item.feature);
           const tamDiem = geojsonLayer.getBounds().getCenter();
+          const meta = damBaoLopWmsDangBat(item.layerName); // bật WMS trước để nó kịp load
+          const tieuDe =
+            item.tieuDe || meta?.tieuDe || item.loai || "Tài nguyên";
           map.flyTo(tamDiem, 15, { duration: 1.5 });
 
           setTimeout(() => {

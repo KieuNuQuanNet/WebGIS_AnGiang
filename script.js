@@ -363,6 +363,139 @@ const WF_SYSTEM_FIELDS = new Set([
   "ly_do_tu_choi",
 ]);
 // =====================================================================
+// 🌟 ĐỒNG BỘ POPUP (TÌM KIẾM / TRUY VẤN / CLICK LỚP)
+// =====================================================================
+const LAYER_META = {
+  "angiang:khoangsan_diem_mo": {
+    tieuDe: "Khoáng sản",
+    layerObj: khoangsan,
+    chkMainId: "chkKhoangSan",
+    subClass: "sub-khoangsan",
+    columnName: "loai_khoang_san",
+  },
+  "angiang:rung": {
+    tieuDe: "Rừng",
+    layerObj: rung,
+    chkMainId: "chkRung",
+    subClass: "sub-rung",
+    columnName: "loai_rung",
+  },
+  "angiang:waterways": {
+    tieuDe: "Nước",
+    layerObj: nuoc,
+    chkMainId: "chkNuoc",
+    subClass: "sub-nuoc",
+    columnName: "loai",
+  },
+  "angiang:dat": {
+    tieuDe: "Đất",
+    layerObj: dat,
+    chkMainId: "chkDat",
+    subClass: "sub-dat",
+    columnName: "loai_dat_su_dung",
+  },
+  "angiang:dongvat": {
+    tieuDe: "Động vật",
+    layerObj: dongvat,
+    chkMainId: "chkDongVat",
+    subClass: "sub-dongvat",
+    columnName: "muc_do_nguy_cap",
+  },
+  "angiang:thucvat": {
+    tieuDe: "Thực vật",
+    layerObj: thucvat,
+    chkMainId: "chkThucVat",
+    subClass: "sub-thucvat",
+    columnName: "muc_do_nguy_cap",
+  },
+};
+
+function getLayerMeta(typeName) {
+  return LAYER_META[typeName] || null;
+}
+
+// ✅ Chọn kết quả tìm kiếm/truy vấn -> bật lớp WMS để đối tượng hiển thị đúng style lớp tài nguyên
+function damBaoLopWmsDangBat(typeName) {
+  const meta = getLayerMeta(typeName);
+  if (!meta) return null;
+
+  const chkMain = document.getElementById(meta.chkMainId);
+  if (!chkMain) return meta;
+
+  // Nếu lớp đang tắt -> bật + tick toàn bộ checkbox con để hiển thị đầy đủ
+  if (!chkMain.checked) {
+    chkMain.checked = true;
+    document
+      .querySelectorAll("." + meta.subClass)
+      .forEach((c) => (c.checked = true));
+  }
+
+  capNhatLopWMS(meta.layerObj, meta.chkMainId, meta.subClass, meta.columnName);
+  return meta;
+}
+
+// ✅ Popup chuẩn (GIỐNG popup khi bật lớp tài nguyên và click)
+function taoPopupThongTin(feature, tieuDe, layerName, layerObj) {
+  const featureId = feature?.id;
+  const props = feature?.properties || {};
+
+  const block = document.createElement("div");
+  block.className = "info-popup";
+
+  let htmlInfo = `<h4>Thông tin ${tieuDe}</h4>`;
+
+  for (const key in props) {
+    if (
+      key !== "bbox" &&
+      key !== "geom" &&
+      key !== "id" &&
+      !WF_SYSTEM_FIELDS.has(key) &&
+      props[key] !== null &&
+      props[key] !== ""
+    ) {
+      const tenHienThi = TU_DIEN_COT[key] || key;
+      htmlInfo += `<p><b>${tenHienThi}:</b> <span class="val-display">${props[key]}</span></p>`;
+    }
+  }
+
+  const coThaoTac = !!(layerName && layerObj && featureId);
+  if (coThaoTac) {
+    htmlInfo += `
+      <div class="popup-actions">
+        <button class="btn-popup btn-edit">✏️ SỬA</button>
+        <button class="btn-popup btn-delete">🗑️ XÓA</button>
+      </div>
+    `;
+  }
+
+  block.innerHTML = htmlInfo;
+  L.DomEvent.disableClickPropagation(block);
+  L.DomEvent.disableScrollPropagation(block);
+
+  if (coThaoTac) {
+    block
+      .querySelector(".btn-delete")
+      ?.addEventListener("click", function (ev) {
+        L.DomEvent.stop(ev);
+        if (
+          confirm(
+            "Bạn có chắc chắn muốn xóa đối tượng này khỏi cơ sở dữ liệu không?",
+          )
+        ) {
+          this.innerHTML = "⏳ Đang xóa...";
+          xoaDuLieuWFS(layerName, featureId, layerObj);
+        }
+      });
+
+    block.querySelector(".btn-edit")?.addEventListener("click", function (ev) {
+      L.DomEvent.stop(ev);
+      moFormSuaDoi(block, layerName, featureId, props, layerObj);
+    });
+  }
+
+  return block;
+}
+// =====================================================================
 // GIAI ĐOẠN 2: CLICK LẤY THÔNG TIN & SỬA XÓA (WFS GETFEATURE & WFS-T)
 // =====================================================================
 function fetchWFS(urlWFS, typeName, tieuDe, layerObj) {
@@ -1792,7 +1925,13 @@ function thucThiTimKiem() {
         return feats.map((f) => {
           const tenHienThi =
             chonGiaTriDauTien(f.properties, cfg.nameFields) || "Không xác định";
-          return { ten: tenHienThi, loai: cfg.label, feature: f };
+          return {
+            ten: tenHienThi,
+            loai: cfg.label,
+            tieuDe: cfg.label,
+            layerName: cfg.layer,
+            feature: f,
+          };
         });
       })
       .catch(() => []);
@@ -1855,27 +1994,16 @@ function thucThiTimKiem() {
           map.flyTo(tamDiem, 15, { duration: 1.5 });
 
           setTimeout(() => {
-            const props = item.feature.properties || {};
-            let popupContent =
-              `<div class="info-popup">` +
-              `<h4 style="margin-top:0; color:#2e7d32; border-bottom:2px solid #4caf50; padding-bottom:5px;">${item.ten}</h4>`;
-
-            for (let key in props) {
-              if (
-                key !== "bbox" &&
-                key !== "geom" &&
-                key !== "id" &&
-                props[key] !== null &&
-                props[key] !== ""
-              ) {
-                const tenDep = TU_DIEN_COT[key] || key;
-                popupContent +=
-                  `<p style="margin:6px 0; font-size:13px;">` +
-                  `<b>${tenDep}:</b> <span class="val-display">${props[key]}</span></p>`;
-              }
-            }
-            popupContent += `</div>`;
-            L.popup().setLatLng(tamDiem).setContent(popupContent).openOn(map);
+            const meta = damBaoLopWmsDangBat(item.layerName);
+            const tieuDe =
+              item.tieuDe || meta?.tieuDe || item.loai || "Tài nguyên";
+            const block = taoPopupThongTin(
+              item.feature,
+              tieuDe,
+              item.layerName,
+              meta?.layerObj,
+            );
+            L.popup().setLatLng(tamDiem).setContent(block).openOn(map);
           }, 1500);
 
           searchResults.classList.add("hidden");
@@ -2177,23 +2305,22 @@ function HienThiKetQuaTruyVan(features, lop) {
       </div>
     `;
 
-    let geojsonLayer = L.geoJSON(f);
+    let geojsonLayer = L.geoJSON(f, {
+      style: () => ({ opacity: 0, fillOpacity: 0, weight: 0 }),
+      pointToLayer: (_, latlng) =>
+        L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 }),
+    });
     resultLayer.addLayer(geojsonLayer);
 
     div.addEventListener("click", () => {
       var tamDiem = geojsonLayer.getBounds().getCenter();
       map.flyTo(tamDiem, 15, { duration: 1.5 });
 
-      let popupContent = `<div class="info-popup"><h4 style="margin-top:0; color:#2e7d32; border-bottom:2px solid #4caf50; padding-bottom:5px;">${ten}</h4>`;
-      for (let key in props) {
-        if (key !== "bbox" && key !== "geom" && key !== "id" && props[key]) {
-          let tenDep = TU_DIEN_COT[key] || key;
-          popupContent += `<p style="margin:6px 0; font-size:13px;"><b>${tenDep}:</b> ${props[key]}</p>`;
-        }
-      }
-      popupContent += `</div>`;
       setTimeout(() => {
-        L.popup().setLatLng(tamDiem).setContent(popupContent).openOn(map);
+        const meta = damBaoLopWmsDangBat(lop);
+        const tieuDe = meta?.tieuDe || nhanLop || "Tài nguyên";
+        const block = taoPopupThongTin(f, tieuDe, lop, meta?.layerObj);
+        L.popup().setLatLng(tamDiem).setContent(block).openOn(map);
       }, 1500);
     });
     lstKetQua.appendChild(div);

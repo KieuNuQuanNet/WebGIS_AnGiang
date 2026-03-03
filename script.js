@@ -1913,9 +1913,16 @@ function thucThiTimKiem() {
     // Nếu đang tìm theo loại tài nguyên (vd: gõ "rừng") => lấy tất cả đối tượng của lớp đó (giới hạn MAX_PER_LAYER)
     // Nếu tìm theo thuộc tính => dùng CQL_FILTER như cũ
     let url = urlBase;
-    if (!lopTheoLoai.length) {
+
+    // ✅ Luôn lọc chỉ dữ liệu đã công bố (dù tìm theo loại hay theo thuộc tính)
+    if (lopTheoLoai.length) {
+      // tìm theo loại: lấy tất cả đối tượng nhưng vẫn chỉ lấy "cong_bo"
+      url = urlBase + `&CQL_FILTER=${encodeURIComponent(CQL_CONG_BO)}`;
+    } else {
+      // tìm theo thuộc tính: (cong_bo) AND (từ khóa)
       const filter = cfg.cols.map((c) => `${c} ILIKE '%${qCql}%'`).join(" OR ");
-      url = urlBase + `&CQL_FILTER=${encodeURIComponent(filter)}`;
+      const filterFull = `(${CQL_CONG_BO}) AND (${filter})`;
+      url = urlBase + `&CQL_FILTER=${encodeURIComponent(filterFull)}`;
     }
 
     return fetch(url)
@@ -2179,6 +2186,10 @@ document.getElementById("btnApDung").addEventListener("click", () => {
   const tuKhoa = document.getElementById("txtTuKhoa").value.trim();
 
   let cqlArray = [];
+
+  // ✅ Luôn chỉ truy vấn dữ liệu đã công bố
+  cqlArray.push(CQL_CONG_BO);
+
   let cauHinhDong = CAU_HINH_LOC_DONG[chonLop];
 
   // Khớp đúng cột DB để truy vấn

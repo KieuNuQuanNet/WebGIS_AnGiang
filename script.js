@@ -599,17 +599,11 @@ map.on("click", function (e) {
     const validResults = results.filter((r) => r && !r.__error);
 
     // ✅ Nếu không có gì -> vẫn mở popup báo rõ
+    // ✅ Nếu không có gì -> KHÔNG hiện thông báo (đỡ khó chịu)
+    // (tuỳ chọn) đóng popup đang mở nếu bạn muốn click trống là ẩn popup luôn
     if (validResults.length === 0) {
-      let msg = "❗ Không tìm thấy đối tượng tại vị trí click.";
-      if (errors.length) {
-        msg +=
-          "<br><br><b>Lỗi đọc WFS:</b><br>" +
-          errors.map((e) => `• ${e.tieuDe}: ${e.message}`).join("<br>");
-      }
-      L.popup()
-        .setLatLng(e.latlng)
-        .setContent(`<div class="info-popup">${msg}</div>`)
-        .openOn(map);
+      if (errors.length) console.warn("WFS errors:", errors); // chỉ log để debug
+      map.closePopup(); // muốn giữ popup cũ thì xóa dòng này
       return;
     }
 

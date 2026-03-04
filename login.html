@@ -31,7 +31,139 @@
       <main class="form-pane">
         <div class="form-wrap">
           <div class="auth-title">ĐĂNG NHẬP HỆ THỐNG</div>
+          <!-- FORGOT -->
+          <section id="forgotBox" class="form-section">
+            <div class="auth-title small">QUÊN MẬT KHẨU</div>
 
+            <form class="auth-form" onsubmit="return false;">
+              <label class="field-label" for="forgotEmail">
+                <span class="label-ico" aria-hidden="true">✉️</span>
+                Email
+              </label>
+
+              <div class="input-pill">
+                <input
+                  id="forgotEmail"
+                  type="email"
+                  placeholder="Nhập email của bạn"
+                />
+              </div>
+
+              <button id="btnForgotSubmit" type="button" class="btn-primary">
+                Gửi link đổi mật khẩu
+              </button>
+
+              <div
+                id="forgotMsg"
+                class="msg msg-success"
+                style="display: none"
+                aria-live="polite"
+              ></div>
+              <div
+                id="forgotErr"
+                class="msg msg-error"
+                style="display: none"
+                aria-live="polite"
+              ></div>
+            </form>
+
+            <div class="links">
+              <a href="#" id="btnBackToLogin1" class="link subtle"
+                >← Quay lại đăng nhập</a
+              >
+            </div>
+          </section>
+
+          <!-- RESET -->
+          <section id="resetBox" class="form-section">
+            <div class="auth-title small">ĐỔI MẬT KHẨU</div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <label class="field-label" for="resetEmail">
+                <span class="label-ico" aria-hidden="true">✉️</span>
+                Email
+              </label>
+
+              <div class="input-pill">
+                <input id="resetEmail" type="email" placeholder="Nhập email" />
+              </div>
+
+              <label class="field-label" for="resetPass">
+                <span class="label-ico" aria-hidden="true">🔒</span>
+                Mật khẩu mới
+              </label>
+
+              <div class="input-pill has-toggle">
+                <input
+                  id="regPassword"
+                  type="password"
+                  placeholder="Mật khẩu"
+                />
+                <button
+                  type="button"
+                  class="toggle-pass"
+                  data-target="regPassword"
+                  aria-label="Hiện mật khẩu"
+                  aria-pressed="false"
+                >
+                  <img
+                    class="toggle-pass-ico"
+                    src="images/closemk.jpg"
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <label class="field-label" for="resetPass2">
+                <span class="label-ico" aria-hidden="true">🔁</span>
+                Nhập lại mật khẩu mới
+              </label>
+
+              <div class="input-pill has-toggle">
+                <input
+                  id="regPassword2"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu"
+                />
+                <button
+                  type="button"
+                  class="toggle-pass"
+                  data-target="regPassword2"
+                  aria-label="Hiện mật khẩu"
+                  aria-pressed="false"
+                >
+                  <img
+                    class="toggle-pass-ico"
+                    src="images/closemk.jpg"
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <button id="btnResetSubmit" type="button" class="btn-primary">
+                Cập nhật mật khẩu
+              </button>
+
+              <div
+                id="resetMsg"
+                class="msg msg-success"
+                style="display: none"
+                aria-live="polite"
+              ></div>
+              <div
+                id="resetErr"
+                class="msg msg-error"
+                style="display: none"
+                aria-live="polite"
+              ></div>
+            </form>
+
+            <div class="links">
+              <a href="#" id="btnBackToLogin2" class="link subtle"
+                >← Quay lại đăng nhập</a
+              >
+            </div>
+          </section>
           <!-- LOGIN -->
           <section id="sectionLogin" class="form-section active">
             <form id="frmLogin" class="auth-form">
@@ -55,14 +187,23 @@
                 Mật khẩu / Password
               </label>
 
-              <div class="input-pill">
-                <input
-                  id="loginPass"
-                  type="password"
-                  placeholder="••••••••"
-                  autocomplete="current-password"
-                  required
-                />
+              <div class="input-pill has-toggle">
+                <input id="password" type="password" placeholder="••••••••" />
+                <button
+                  type="button"
+                  class="toggle-pass"
+                  data-target="password"
+                  data-src-show="images/openmk.jpg"
+                  data-src-hide="images/closemk.jpg"
+                  aria-label="Hiện mật khẩu"
+                  aria-pressed="false"
+                >
+                  <img
+                    class="toggle-pass-ico"
+                    src="images/closemk.jpg"
+                    alt=""
+                  />
+                </button>
               </div>
 
               <button id="btnLoginSubmit" type="submit" class="btn-primary">
@@ -76,7 +217,7 @@
                 aria-live="polite"
               ></div>
             </form>
-
+            <a id="btnToForgot" href="#" class="link-forgot">Quên mật khẩu?</a>
             <div class="links">
               <span>Chưa có tài khoản?</span>
               <a id="btnToRegister" class="link">Tạo tài khoản mới</a>
@@ -85,6 +226,66 @@
             <div class="links">
               <a href="index.html" class="link subtle"
                 >← Quay lại bản đồ (Chế độ khách)</a
+              >
+            </div>
+            <div id="forgotBox" class="auth-box" style="display: none">
+              <h3 class="auth-title">Quên mật khẩu</h3>
+
+              <label>Email</label>
+              <input
+                id="forgotEmail"
+                type="email"
+                placeholder="Nhập email của bạn"
+              />
+
+              <button id="btnForgotSubmit" type="button">
+                Gửi link đổi mật khẩu
+              </button>
+
+              <div
+                id="forgotMsg"
+                class="msg success"
+                style="display: none"
+              ></div>
+              <div id="forgotErr" class="msg error" style="display: none"></div>
+
+              <a href="#" id="btnBackToLogin1" class="link-back"
+                >← Quay lại đăng nhập</a
+              >
+            </div>
+            <div id="resetBox" class="auth-box" style="display: none">
+              <h3 class="auth-title">Đổi mật khẩu</h3>
+
+              <label>Email</label>
+              <input id="resetEmail" type="email" placeholder="Nhập email" />
+
+              <label>Mật khẩu mới</label>
+              <input
+                id="resetPass"
+                type="password"
+                placeholder="Nhập mật khẩu mới"
+              />
+
+              <label>Nhập lại mật khẩu mới</label>
+              <input
+                id="resetPass2"
+                type="password"
+                placeholder="Nhập lại mật khẩu"
+              />
+
+              <button id="btnResetSubmit" type="button">
+                Cập nhật mật khẩu
+              </button>
+
+              <div
+                id="resetMsg"
+                class="msg success"
+                style="display: none"
+              ></div>
+              <div id="resetErr" class="msg error" style="display: none"></div>
+
+              <a href="#" id="btnBackToLogin2" class="link-back"
+                >← Quay lại đăng nhập</a
               >
             </div>
           </section>
@@ -126,26 +327,52 @@
                 <span class="label-ico" aria-hidden="true">🔐</span>
                 Mật khẩu
               </label>
-              <div class="input-pill">
+              <div class="input-pill has-toggle">
                 <input
                   id="regPass"
                   type="password"
                   autocomplete="new-password"
                   required
                 />
+                <button
+                  type="button"
+                  class="toggle-pass"
+                  data-target="regPass"
+                  aria-label="Hiện mật khẩu"
+                  aria-pressed="false"
+                >
+                  <img
+                    class="toggle-pass-ico"
+                    src="images/closemk.jpg"
+                    alt=""
+                  />
+                </button>
               </div>
 
               <label class="field-label" for="regPassConfirm">
                 <span class="label-ico" aria-hidden="true">🔁</span>
                 Nhập lại mật khẩu
               </label>
-              <div class="input-pill">
+              <div class="input-pill has-toggle">
                 <input
                   id="regPassConfirm"
                   type="password"
                   autocomplete="new-password"
                   required
                 />
+                <button
+                  type="button"
+                  class="toggle-pass"
+                  data-target="regPassConfirm"
+                  aria-label="Hiện mật khẩu"
+                  aria-pressed="false"
+                >
+                  <img
+                    class="toggle-pass-ico"
+                    src="images/closemk.jpg"
+                    alt=""
+                  />
+                </button>
               </div>
 
               <button id="btnRegSubmit" type="submit" class="btn-primary">

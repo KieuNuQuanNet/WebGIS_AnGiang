@@ -1,15 +1,11 @@
-// backend/server.js
-require("dotenv").config();
-
-// ✅ whitelist layer cho WFS/WFS-T (đọc từ .env: ALLOWED_LAYERS)
-const ALLOWED = new Set(
-  (process.env.ALLOWED_LAYERS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-);
-
 const path = require("path");
+require("dotenv").config({
+  path: path.join(__dirname, ".env"), // nếu .env nằm cùng thư mục server.js
+  override: true, // ép dùng .env kể cả Windows có biến môi trường
+});
+
+console.log("✅ RUNNING FILE:", __filename);
+console.log("✅ APP_PUBLIC_URL (env):", process.env.APP_PUBLIC_URL);
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -1257,6 +1253,159 @@ async function pickLabelColumn(table) {
   const found = LABEL_CANDIDATES.find((c) => cols.has(c));
   return found || null; // null => chỉ hiển thị ID
 }
+async function sendResetPasswordEmail(toEmail, token) {
+  if (!mailer) throw new Error("SMTP chưa cấu hình");
+
+  const APP_PUBLIC_URL = process.env.APP_PUBLIC_URL || "http://localhost:5500";
+
+  const resetLink = `${APP_PUBLIC_URL}/login.html?reset=${encodeURIComponent(token)}`;
+  console.log("✅ Reset link being sent:", resetLink);
+
+  await mailer.sendMail({
+    to: toEmail,
+    subject: "Đặt lại mật khẩu - WebGIS",
+    html: `
+    Bấm link sau để đổi mật khẩu:
+    <a href="${resetLink}">${resetLink}</a>
+  `,
+  });
+}
+app.post("/api/forgot-password", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const email = normalizeEmail(req.body?.email);
+
+    // trả chung để tránh dò email có tồn tại hay không
+    const okMessage =
+      "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (kể cả Spam).";
+
+    if (!email || !isValidEmailFormat(email)) {
+      return res.json({ ok: true, message: okMessage });
+    }
+
+    const ua = String(req.headers["user-agent"] || "").slice(0, 500);
+    const ipRaw = String(req.headers["x-forwarded-for"] || req.ip || "");
+    const ip = ipRaw.split(",")[0].trim().slice(0, 80);
+
+    const { rows } = await client.query(
+      "SELECT id, email FROM public.tai_khoan WHERE email=$1",
+      [email],
+    );
+
+    // không tồn tại -> vẫn trả ok
+    if (!rows[0]) return res.json({ ok: true, message: okMessage });
+
+    const userId = rows[0].id;
+
+    await client.query("BEGIN");
+
+    // xóa token reset cũ chưa dùng (đơn giản hóa)
+    await client.query(
+      "DELETE FROM public.token_quen_mat_khau WHERE tai_khoan_id=$1 AND da_su_dung_luc IS NULL",
+      [userId],
+    );
+
+    // tạo token gốc + hash để lưu DB
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const ttlMin = Number(process.env.RESET_PASSWORD_TTL_MIN || 30);
+
+    await client.query(
+      `
+      INSERT INTO public.token_quen_mat_khau
+        (tai_khoan_id, token_ma_hoa, het_han_luc, ip_yeu_cau, trinh_duyet)
+      VALUES ($1, $2, now() + ($3 || ' minutes')::interval, $4, $5)
+      `,
+      [userId, tokenHash, String(ttlMin), ip, ua],
+    );
+
+    await sendResetPasswordEmail(email, token);
+
+    await client.query("COMMIT");
+    return res.json({ ok: true, message: okMessage });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    console.error(e);
+    return res.status(500).json({ message: "Lỗi server", detail: e.message });
+  } finally {
+    client.release();
+  }
+});
+app.post("/api/reset-password", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const token = String(req.body?.token || "").trim();
+    const email = normalizeEmail(req.body?.email);
+    const newPassword = String(req.body?.new_password || "");
+
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({ message: "Thiếu dữ liệu" });
+    }
+    if (!isValidEmailFormat(email)) {
+      return res.status(400).json({ message: "Email không hợp lệ" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Mật khẩu tối thiểu 6 ký tự" });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(
+      `
+      SELECT tq.id AS token_id, tk.id AS user_id
+      FROM public.token_quen_mat_khau tq
+      JOIN public.tai_khoan tk ON tk.id = tq.tai_khoan_id
+      WHERE tk.email=$1
+        AND tq.token_ma_hoa=$2
+        AND tq.da_su_dung_luc IS NULL
+        AND tq.het_han_luc > now()
+      LIMIT 1
+      `,
+      [email, tokenHash],
+    );
+
+    if (!rows[0]) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: "Link không hợp lệ hoặc đã hết hạn" });
+    }
+
+    const userId = rows[0].user_id;
+    const tokenId = rows[0].token_id;
+
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    await client.query(
+      "UPDATE public.tai_khoan SET mat_khau_hash=$2 WHERE id=$1",
+      [userId, hash],
+    );
+
+    await client.query(
+      "UPDATE public.token_quen_mat_khau SET da_su_dung_luc=now() WHERE id=$1",
+      [tokenId],
+    );
+
+    await client.query("COMMIT");
+    return res.json({
+      ok: true,
+      message: "✅ Đổi mật khẩu thành công. Bạn có thể đăng nhập lại.",
+    });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    console.error(e);
+    return res.status(500).json({ message: "Lỗi server", detail: e.message });
+  } finally {
+    client.release();
+  }
+});
 app.listen(process.env.PORT || 3000, () => {
   console.log(`✅ API running at http://localhost:${process.env.PORT || 3000}`);
 });

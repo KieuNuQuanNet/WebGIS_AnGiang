@@ -33,3 +33,25 @@
 .w-220 {
   width: 220px;
 }
+/* ===== Toggle show/hide password (global) ===== */
+..pwd-wrap {
+  position: relative;
+}
+.pwd-wrap input {
+  padding-right: 54px;
+}
+.toggle-pass {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.toggle-pass-ico {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  pointer-events: none;
+}

@@ -32,7 +32,19 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
-
+/* ===== Forgot/Reset password (chỉ còn style cho link) ===== */
+.link-forgot {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  color: var(--green);
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+}
+.link-forgot:hover {
+  text-decoration: underline;
+}
 /* LEFT */
 .brand-pane {
   background: var(--green);
@@ -238,4 +250,94 @@ body {
   .form-pane {
     padding-top: 22px;
   }
+}
+/* ===== Toggle show/hide password bằng icon ảnh ===== */
+.input-pill.has-toggle {
+  position: relative;
+}
+
+/* Chừa chỗ bên phải cho nút icon */
+.input-pill.has-toggle input {
+  padding-right: 54px;
+}
+
+.toggle-pass {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+}
+
+.toggle-pass:hover {
+  opacity: 1;
+}
+
+.toggle-pass:focus {
+  outline: 2px solid rgba(0, 128, 0, 0.25);
+  border-radius: 10px;
+}
+
+.toggle-pass-ico {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+/* ===== Toggle show/hide password bằng icon ảnh ===== */
+
+/* input pill có nút mắt */
+.input-pill.has-toggle {
+  position: relative;
+}
+
+/* chừa khoảng trống bên phải để nút không đè lên chữ */
+.input-pill.has-toggle input {
+  padding-right: 54px;
+}
+
+/* nút mắt */
+.toggle-pass {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+}
+
+.toggle-pass:hover {
+  opacity: 1;
+}
+
+.toggle-pass:focus {
+  outline: 2px solid rgba(0, 128, 0, 0.25);
+  border-radius: 10px;
+}
+
+/* ảnh mắt */
+.toggle-pass-ico {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none; /* để click luôn ăn vào button */
 }

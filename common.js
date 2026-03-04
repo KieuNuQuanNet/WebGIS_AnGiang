@@ -198,3 +198,57 @@ function applyPermUI() {
     document.getElementById("panelThongKe")?.classList.add("hidden");
   }
 }
+// ===== Password toggle: áp dụng cho mọi input password (global) =====
+(function initTogglePasswordGlobal() {
+  const ICON_SHOW = "images/openmk.jpg";
+  const ICON_HIDE = "images/closemk.jpg";
+
+  // 1) Tự chèn nút cho mọi input password
+  document.querySelectorAll('input[type="password"]').forEach((input, idx) => {
+    if (!input.id) input.id = `pwd_${idx}_${Date.now()}`;
+
+    // tránh chèn lặp
+    if (
+      input.parentElement?.querySelector(
+        `.toggle-pass[data-target="${input.id}"]`,
+      )
+    )
+      return;
+
+    // add class để CSS position icon
+    input.parentElement?.classList?.add("pwd-wrap");
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggle-pass";
+    btn.dataset.target = input.id;
+    btn.setAttribute("aria-label", "Hiện mật khẩu");
+    btn.setAttribute("aria-pressed", "false");
+
+    const img = document.createElement("img");
+    img.className = "toggle-pass-ico";
+    img.src = ICON_HIDE;
+    img.alt = "";
+    btn.appendChild(img);
+
+    input.parentElement?.appendChild(btn);
+  });
+
+  // 2) Bắt click bằng event delegation (đỡ phải addEventListener từng nút)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest?.(".toggle-pass");
+    if (!btn) return;
+
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+
+    const img = btn.querySelector(".toggle-pass-ico");
+    const willShow = input.type === "password";
+
+    input.type = willShow ? "text" : "password";
+    if (img) img.src = willShow ? ICON_SHOW : ICON_HIDE;
+
+    btn.setAttribute("aria-pressed", String(willShow));
+    btn.setAttribute("aria-label", willShow ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+  });
+})();

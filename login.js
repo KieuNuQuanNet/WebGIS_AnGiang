@@ -40,9 +40,10 @@ function gotoLogin() {
 
 const qs = new URLSearchParams(window.location.search);
 const verifyToken = qs.get("verify");
+const resetToken = qs.get("reset"); // ✅ thêm
 
-// Nếu đang verify thì KHÔNG redirect vội
-if (!verifyToken && localStorage.getItem("webgis_token")) {
+// Nếu đang verify/reset thì KHÔNG redirect vội
+if (!verifyToken && !resetToken && localStorage.getItem("webgis_token")) {
   window.location.href = "index.html";
 }
 
@@ -192,5 +193,162 @@ frmLogin?.addEventListener("submit", async (e) => {
       btn.disabled = false;
       btn.innerHTML = "Đăng nhập";
     }
+  }
+});
+// ===== FORGOT/RESET PASSWORD FLOW (FIX UI + FIX API_BASE) =====
+const secForgot = document.getElementById("forgotBox");
+const secReset = document.getElementById("resetBox");
+
+const btnToForgot = document.getElementById("btnToForgot");
+const btnBackToLogin1 = document.getElementById("btnBackToLogin1");
+const btnBackToLogin2 = document.getElementById("btnBackToLogin2");
+
+const btnForgotSubmit = document.getElementById("btnForgotSubmit");
+const btnResetSubmit = document.getElementById("btnResetSubmit");
+
+const forgotEmail = document.getElementById("forgotEmail");
+const resetEmail = document.getElementById("resetEmail");
+const resetPass = document.getElementById("resetPass");
+const resetPass2 = document.getElementById("resetPass2");
+
+const forgotMsg = document.getElementById("forgotMsg");
+const forgotErr = document.getElementById("forgotErr");
+const resetMsg = document.getElementById("resetMsg");
+const resetErr = document.getElementById("resetErr");
+
+function setActiveSection(sec) {
+  [secLogin, secRegister, secForgot, secReset].forEach((s) =>
+    s?.classList.remove("active"),
+  );
+  sec?.classList.add("active");
+}
+
+function gotoForgot() {
+  setActiveSection(secForgot);
+  hide(forgotMsg);
+  hide(forgotErr);
+  hide(resetMsg);
+  hide(resetErr);
+}
+
+function gotoReset() {
+  setActiveSection(secReset);
+  hide(forgotMsg);
+  hide(forgotErr);
+  hide(resetMsg);
+  hide(resetErr);
+}
+
+// Click "Quên mật khẩu?"
+btnToForgot?.addEventListener("click", (e) => {
+  e.preventDefault();
+  gotoForgot();
+  forgotEmail?.focus();
+});
+
+// Back
+btnBackToLogin1?.addEventListener("click", (e) => {
+  e.preventDefault();
+  gotoLogin();
+});
+btnBackToLogin2?.addEventListener("click", (e) => {
+  e.preventDefault();
+  gotoLogin();
+});
+
+// Nếu URL có reset token -> mở form đổi mật khẩu
+if (resetToken) {
+  gotoReset();
+  // bỏ query khỏi URL (nhưng vẫn giữ resetToken trong biến)
+  window.history.replaceState({}, "", "login.html");
+  resetEmail?.focus();
+}
+
+// Gửi mail reset
+btnForgotSubmit?.addEventListener("click", async () => {
+  hide(forgotMsg);
+  hide(forgotErr);
+
+  const email = (forgotEmail?.value || "").trim();
+  if (!email) {
+    show(forgotErr, "❌ Vui lòng nhập email.");
+    return;
+  }
+
+  btnForgotSubmit.disabled = true;
+  btnForgotSubmit.textContent = "⏳ Đang gửi...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || "Gửi thất bại");
+
+    show(
+      forgotMsg,
+      data.message ||
+        "✅ Nếu email tồn tại, hệ thống đã gửi link đổi mật khẩu.",
+    );
+  } catch (err) {
+    show(forgotErr, "❌ " + (err.message || err));
+  } finally {
+    btnForgotSubmit.disabled = false;
+    btnForgotSubmit.textContent = "Gửi link đổi mật khẩu";
+  }
+});
+
+// Đổi mật khẩu
+btnResetSubmit?.addEventListener("click", async () => {
+  hide(resetMsg);
+  hide(resetErr);
+
+  const email = (resetEmail?.value || "").trim();
+  const p1 = resetPass?.value || "";
+  const p2 = resetPass2?.value || "";
+
+  if (!resetToken) {
+    show(resetErr, "❌ Link reset không hợp lệ (thiếu token).");
+    return;
+  }
+  if (!email) {
+    show(resetErr, "❌ Vui lòng nhập email.");
+    return;
+  }
+  if (p1.length < 6) {
+    show(resetErr, "❌ Mật khẩu tối thiểu 6 ký tự.");
+    return;
+  }
+  if (p1 !== p2) {
+    show(resetErr, "❌ Mật khẩu nhập lại không khớp.");
+    return;
+  }
+
+  btnResetSubmit.disabled = true;
+  btnResetSubmit.textContent = "⏳ Đang cập nhật...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: resetToken, email, new_password: p1 }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || "Đổi mật khẩu thất bại");
+
+    show(
+      resetMsg,
+      data.message || "✅ Đổi mật khẩu thành công. Bạn có thể đăng nhập lại.",
+    );
+    setTimeout(() => gotoLogin(), 1200);
+  } catch (err) {
+    show(resetErr, "❌ " + (err.message || err));
+  } finally {
+    btnResetSubmit.disabled = false;
+    btnResetSubmit.textContent = "Cập nhật mật khẩu";
   }
 });

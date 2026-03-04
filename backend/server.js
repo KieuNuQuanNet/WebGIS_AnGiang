@@ -7,8 +7,10 @@ const helmet = require("helmet");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const dns = require("dns").promises;
+const nodemailer = require("nodemailer");
 const { pool } = require("./db");
-
 const app = express();
 console.log("✅ RUNNING FILE:", __filename);
 app.set("trust proxy", 1);
@@ -68,6 +70,66 @@ app.use(
 );
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 
+// ===== EMAIL VERIFY =====
+const APP_PUBLIC_URL = process.env.APP_PUBLIC_URL || "http://localhost:5500";
+
+const SMTP_ENABLED = !!(
+  process.env.SMTP_HOST &&
+  process.env.SMTP_USER &&
+  process.env.SMTP_PASS
+);
+
+const mailer = SMTP_ENABLED
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: String(process.env.SMTP_SECURE || "false") === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+  : null;
+
+function normalizeEmail(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+function isValidEmailFormat(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// MX chỉ “best-effort”
+async function hasMxBestEffort(email) {
+  const domain = String(email).split("@")[1] || "";
+  if (!domain) return false;
+  try {
+    const mx = await dns.resolveMx(domain);
+    return Array.isArray(mx) && mx.length > 0; // true/false
+  } catch (e) {
+    console.warn("MX_CHECK_FAILED:", domain, e.message);
+    return null; // DNS lỗi -> không kết luận domain sai
+  }
+}
+
+async function sendVerifyEmail(toEmail, token) {
+  if (!mailer) throw new Error("SMTP chưa cấu hình");
+
+  const verifyLink = `${APP_PUBLIC_URL}/login.html?verify=${encodeURIComponent(token)}`;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  await mailer.sendMail({
+    from,
+    to: toEmail,
+    subject: "Xác nhận email - WebGIS Tài nguyên An Giang",
+    html: `
+      <div style="font-family:Arial,sans-serif;font-size:14px">
+        <p>Chào bạn,</p>
+        <p>Vui lòng bấm link để xác nhận email:</p>
+        <p><a href="${verifyLink}">${verifyLink}</a></p>
+        <p>Nếu bạn không đăng ký, hãy bỏ qua email này.</p>
+      </div>
+    `,
+  });
+}
 // ===== Helpers RBAC =====
 async function logLoginAttempt({
   req,
@@ -98,8 +160,9 @@ async function getUserRolesPermsByEmail(email) {
       tk.id,
       tk.ho_ten,
       tk.email,
-      tk.trang_thai,
-      tk.mat_khau_hash,
+tk.trang_thai,
+tk.email_da_xac_nhan,
+tk.mat_khau_hash,
       COALESCE(array_agg(DISTINCT vt.ma) FILTER (WHERE vt.ma IS NOT NULL), '{}') AS roles,
       COALESCE(array_agg(DISTINCT q.ma)  FILTER (WHERE q.ma  IS NOT NULL), '{}') AS permissions
     FROM public.tai_khoan tk
@@ -151,48 +214,162 @@ function requirePerm(code) {
 
 // ===== AUTH =====
 app.post("/api/register", async (req, res) => {
+  const client = await pool.connect();
   try {
     const { ho_ten, email, mat_khau } = req.body || {};
-    if (!ho_ten || !email || !mat_khau)
-      return res.status(400).json({ message: "Thiếu dữ liệu" });
 
-    const hash = await bcrypt.hash(mat_khau, 10);
+    const hoTen = String(ho_ten || "").trim();
+    const em = normalizeEmail(email);
+    const mk = String(mat_khau || "");
+
+    if (!hoTen || !em || !mk) {
+      return res.status(400).json({ message: "Thiếu dữ liệu" });
+    }
+    if (!isValidEmailFormat(em)) {
+      return res.status(400).json({ message: "Email không hợp lệ" });
+    }
+
+    // MX best-effort (không bắt buộc)
+    const mxOk = await hasMxBestEffort(em);
+    if (mxOk === false) {
+      return res
+        .status(400)
+        .json({ message: "Email/domain không tồn tại (không có MX)" });
+    }
+
+    if (!SMTP_ENABLED) {
+      return res
+        .status(500)
+        .json({ message: "Server chưa cấu hình SMTP để gửi email xác nhận" });
+    }
+
+    // Nếu email đã tồn tại mà chưa xác nhận -> gửi lại mail (KHÔNG trả 409)
+    const existed = await client.query(
+      "SELECT id, email_da_xac_nhan FROM public.tai_khoan WHERE email=$1",
+      [em],
+    );
+    if (existed.rows[0]) {
+      if (existed.rows[0].email_da_xac_nhan) {
+        return res.status(409).json({ message: "Email đã tồn tại" });
+      }
+
+      await client.query("BEGIN");
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+      await client.query(
+        `
+        UPDATE public.tai_khoan
+        SET email_xac_nhan_token_hash=$2,
+            email_xac_nhan_exp=now() + interval '24 hours',
+            email_xac_nhan_sent_at=now()
+        WHERE id=$1
+        `,
+        [existed.rows[0].id, tokenHash],
+      );
+
+      // Gửi email trước khi commit (nếu gửi fail -> rollback)
+      await sendVerifyEmail(em, token);
+
+      await client.query("COMMIT");
+      return res.json({
+        ok: true,
+        message:
+          "Email đã đăng ký nhưng CHƯA xác nhận. Hệ thống đã gửi lại email xác nhận.",
+      });
+    }
+
+    // Tạo mới
+    await client.query("BEGIN");
+
+    const hash = await bcrypt.hash(mk, 10);
 
     const insertSql = `
-      INSERT INTO public.tai_khoan (ho_ten, email, mat_khau_hash, trang_thai)
-      VALUES ($1, $2, $3, 'cho_duyet')
+      INSERT INTO public.tai_khoan (ho_ten, email, mat_khau_hash, trang_thai, email_da_xac_nhan)
+      VALUES ($1, $2, $3, 'cho_duyet', false)
       RETURNING id, ho_ten, email, trang_thai;
     `;
-    const { rows } = await pool.query(insertSql, [ho_ten, email, hash]);
+    const { rows } = await client.query(insertSql, [hoTen, em, hash]);
+    const userId = rows[0].id;
 
-    // Tự gán role guest (để admin chỉ cần duyệt)
-    await pool.query(
+    await client.query(
       `INSERT INTO public.tai_khoan_vai_tro(tai_khoan_id, vai_tro_id)
        SELECT $1, id FROM public.vai_tro WHERE ma='guest'
        ON CONFLICT DO NOTHING`,
-      [rows[0].id],
+      [userId],
     );
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await client.query(
+      `
+      UPDATE public.tai_khoan
+      SET email_xac_nhan_token_hash=$2,
+          email_xac_nhan_exp=now() + interval '24 hours',
+          email_xac_nhan_sent_at=now()
+      WHERE id=$1
+      `,
+      [userId, tokenHash],
+    );
+
+    // Gửi mail trước khi commit
+    await sendVerifyEmail(em, token);
+
+    await client.query("COMMIT");
 
     return res.json({
       ok: true,
-      message: "Đăng ký thành công. Vui lòng chờ Admin duyệt.",
+      message:
+        "Đăng ký thành công. Vui lòng kiểm tra email để XÁC NHẬN, sau đó chờ Admin duyệt.",
       user: rows[0],
     });
   } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
     if (e.code === "23505" || String(e).includes("duplicate key")) {
-      return res
-        .status(409)
-        .json({ message: "Email đã tồn tại", detail: e.detail, code: e.code });
+      return res.status(409).json({ message: "Email đã tồn tại" });
     }
     console.error("REGISTER_ERROR:", e);
-    return res.status(500).json({
-      message: "Server error",
-      detail: e.message,
-      code: e.code || null,
-    });
+    return res.status(500).json({ message: "Server error", detail: e.message });
+  } finally {
+    client.release();
   }
 });
+app.get("/api/xac-nhan-email", async (req, res) => {
+  try {
+    const token = String(req.query.token || "").trim();
+    if (!token) return res.status(400).json({ message: "Thiếu token" });
 
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const { rows } = await pool.query(
+      `
+      UPDATE public.tai_khoan
+      SET email_da_xac_nhan=true,
+          email_xac_nhan_token_hash=NULL,
+          email_xac_nhan_exp=NULL
+      WHERE email_xac_nhan_token_hash=$1
+        AND email_xac_nhan_exp IS NOT NULL
+        AND email_xac_nhan_exp > now()
+      RETURNING id, email
+      `,
+      [tokenHash],
+    );
+
+    if (!rows[0]) {
+      return res
+        .status(400)
+        .json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+    return res.json({ ok: true, message: "✅ Xác nhận email thành công!" });
+  } catch (e) {
+    console.error("VERIFY_EMAIL_ERROR:", e);
+    return res.status(500).json({ message: "Server error", detail: e.message });
+  }
+});
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body || {};
 
@@ -217,7 +394,11 @@ app.post("/api/login", async (req, res) => {
       });
       return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
     }
-
+    if (!user.email_da_xac_nhan) {
+      return res
+        .status(403)
+        .json({ message: "Bạn cần xác nhận email trước khi đăng nhập" });
+    }
     if (user.trang_thai !== "hoat_dong") {
       await logLoginAttempt({
         req,
@@ -272,18 +453,6 @@ app.post("/api/login", async (req, res) => {
     return res.status(500).json({ message: "Server error", detail: e.message });
   }
 });
-
-app.get("/api/me", authRequired, (req, res) =>
-  res.json({ ok: true, user: req.user }),
-);
-
-// ===== WFS-T Proxy =====
-const ALLOWED = new Set(
-  (process.env.ALLOWED_LAYERS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-);
 
 function validateWfstRequest(req, res, next) {
   const action = (req.headers["x-action"] || "").toString().toLowerCase(); // insert|update|delete
@@ -465,7 +634,17 @@ app.patch(
     if (!["cho_duyet", "hoat_dong", "khoa"].includes(trang_thai)) {
       return res.status(400).json({ message: "trang_thai không hợp lệ" });
     }
-
+    if (trang_thai === "hoat_dong") {
+      const ck = await pool.query(
+        "SELECT email_da_xac_nhan FROM public.tai_khoan WHERE id=$1",
+        [id],
+      );
+      if (!ck.rows[0]?.email_da_xac_nhan) {
+        return res.status(400).json({
+          message: "Chưa xác nhận email, không thể duyệt hoạt động",
+        });
+      }
+    }
     const { rows } = await pool.query(
       "UPDATE public.tai_khoan SET trang_thai=$2 WHERE id=$1 RETURNING id, email, trang_thai",
       [id, trang_thai],

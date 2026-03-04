@@ -294,3 +294,7 @@ select {
   color: var(--muted);
   font-weight: 900;
 }
+.warn-text {
+  font-size: 12px;
+  color: #b45309;
+}

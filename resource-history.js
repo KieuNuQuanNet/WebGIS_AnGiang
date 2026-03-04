@@ -24,9 +24,7 @@ function stepCell(time, who, emptyText) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = getToken();
-  if (!token) return (window.location.href = "login.html");
-  if (!isAdmin()) return (window.location.href = "index.html");
+  if (!requireAdmin()) return;
 
   const helloUser = document.getElementById("helloUser");
   if (helloUser) {
@@ -67,7 +65,7 @@ async function load() {
     rows.forEach((r, idx) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td style="text-align:center;">${idx + 1}</td>
+        <td class="text-center">${idx + 1}</td>
         <td><b>${esc(r.ten_tai_nguyen || "-")}</b><div class="muted">${esc(r.ma_lop || "")}</div></td>
         <td>${statusBadge(r.trang_thai_du_lieu)}</td>
         <td>${stepCell(r.ngay_tao, r.ten_nguoi_tao || r.nguoi_tao, "Chưa có")}</td>

@@ -25,7 +25,22 @@ function getToken() {
 function clearAuth() {
   WEBGIS_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
 }
+function requireLogin(redirect = "login.html") {
+  if (!getToken()) {
+    window.location.href = redirect;
+    return false;
+  }
+  return true;
+}
 
+function requireAdmin(redirect = "index.html") {
+  if (!requireLogin()) return false;
+  if (!isAdmin()) {
+    window.location.href = redirect;
+    return false;
+  }
+  return true;
+}
 function getRoles() {
   return (readJSON("webgis_roles", []) || []).map((x) =>
     String(x).toLowerCase(),

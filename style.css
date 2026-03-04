@@ -69,6 +69,13 @@ body {
   cursor: pointer;
   min-height: 40px;
 }
+.btn-measure {
+  background-color: #84a1cf;
+  font-size: 18px;
+}
+.btn-measure:hover {
+  background-color: #2563eb;
+}
 /* =========================================
    GIAO DIỆN TÌM KIẾM
    ========================================= */
@@ -509,6 +516,7 @@ body {
   pointer-events: auto;
 }
 .tool-group {
+  margin-top: 10px;
   position: relative;
 }
 .tool-btn {

@@ -42,9 +42,9 @@
         <div id="searchResults" class="search-results hidden"></div>
       </div>
       <div class="navbar-menu">
-        <span id="navUser" style="margin-right: 10px; display: none"></span>
+        <span id="navUser" class="hidden" style="margin-right: 10px"></span>
         <a id="navAuth" href="login.html">Đăng nhập</a>
-        <a id="navAdminUsers" href="admin_users.html" style="display: none"
+        <a id="navAdminUsers" href="admin_users.html" class="hidden"
           >Quản lý tài khoản</a
         >
       </div>
@@ -183,6 +183,21 @@
               Nước
             </li>
           </ul>
+        </div>
+        <div class="tool-group">
+          <button id="btnDoDat" class="tool-btn btn-measure" title="Đo đạc">
+            📏
+          </button>
+          <div id="danhSachDoDat" class="resource-list hidden">
+            <h4>Đo đạc</h4>
+            <ul>
+              <li class="measure-item" data-type="distance">
+                📏 Đo khoảng cách
+              </li>
+              <li class="measure-item" data-type="area">📐 Đo diện tích</li>
+              <li id="btnClearMeasure">🧹 Xóa kết quả đo</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

@@ -9,9 +9,7 @@ function badgeStatus(status) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = getToken();
-  if (!token) return (window.location.href = "login.html");
-  if (!isAdmin()) return (window.location.href = "index.html");
+  if (!requireAdmin()) return;
 
   const helloUser = document.getElementById("helloUser");
   if (helloUser) {

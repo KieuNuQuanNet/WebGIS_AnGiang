@@ -1,5 +1,4 @@
-// login.js - phiên bản giữ nguyên giao diện (không đụng CSS/HTML), chỉ sửa logic JWT/RBAC
-const API_BASE = "http://localhost:3000";
+const API_BASE = window.WEBGIS_API_BASE || "http://localhost:3000";
 
 const secLogin = document.getElementById("sectionLogin");
 const secRegister = document.getElementById("sectionRegister");
@@ -39,10 +38,35 @@ function gotoLogin() {
   hide(errorRegMsg);
 }
 
-// Nếu đã có token thì không ở lại trang login
-if (localStorage.getItem("webgis_token")) {
+const qs = new URLSearchParams(window.location.search);
+const verifyToken = qs.get("verify");
+
+// Nếu đang verify thì KHÔNG redirect vội
+if (!verifyToken && localStorage.getItem("webgis_token")) {
   window.location.href = "index.html";
 }
+
+// ===== EMAIL VERIFY (khi user bấm link trong email) =====
+(async function handleVerify() {
+  if (!verifyToken) return;
+
+  try {
+    const r = await fetch(
+      `${API_BASE}/api/xac-nhan-email?token=${encodeURIComponent(verifyToken)}`,
+    );
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.message || "Xác nhận email thất bại");
+
+    show(successMsg, "✅ " + (data.message || "Xác nhận email thành công!"));
+    gotoLogin();
+  } catch (e) {
+    show(errorMsg, "❌ " + (e.message || e));
+    gotoLogin();
+  } finally {
+    // xóa ?verify=... khỏi URL
+    window.history.replaceState({}, "", "login.html");
+  }
+})();
 
 // Toggle
 btnToRegister?.addEventListener("click", (e) => {
@@ -85,11 +109,18 @@ frmRegister?.addEventListener("submit", async (e) => {
     });
 
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.message || "Lỗi đăng ký");
+    if (!r.ok) {
+      const msg = [data.message, data.detail, data.code]
+        .filter(Boolean)
+        .join(" — ");
+      throw new Error(msg || "Lỗi đăng ký");
+    }
 
     show(
       successMsg,
-      "✅ " + (data.message || "Đăng ký thành công. Vui lòng chờ Admin duyệt."),
+      "✅ " +
+        (data.message ||
+          "Đăng ký thành công. Vui lòng kiểm tra email để xác nhận, sau đó chờ Admin duyệt."),
     );
     frmRegister.reset();
 

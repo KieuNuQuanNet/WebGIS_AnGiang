@@ -608,64 +608,58 @@ map.on("click", function (e) {
     }
 
     // --- phần cũ của bạn giữ nguyên từ đây trở xuống ---
-    var containerDiv = document.createElement("div");
-    L.DomEvent.disableClickPropagation(containerDiv);
-    L.DomEvent.disableScrollPropagation(containerDiv);
+    // ✅ Chỉ hiển thị 1 đối tượng (ưu tiên theo thứ tự promises.push)
+    const item = validResults[0];
 
-    validResults.forEach((item) => {
-      var featureId = item.feature.id;
-      var props = item.feature.properties;
+    const featureId = item.feature.id;
+    const props = item.feature.properties || {};
 
-      var block = document.createElement("div");
-      block.className = "info-popup";
+    const block = document.createElement("div");
+    block.className = "info-popup";
+    L.DomEvent.disableClickPropagation(block);
+    L.DomEvent.disableScrollPropagation(block);
 
-      var htmlInfo = `<h4>Thông tin ${item.tieuDe}</h4>`;
-      for (var key in props) {
-        if (
-          key !== "bbox" &&
-          key !== "geom" &&
-          key !== "id" &&
-          !WF_SYSTEM_FIELDS.has(key) &&
-          props[key] !== null &&
-          props[key] !== ""
-        ) {
-          var tenHienThi = TU_DIEN_COT[key] || key;
-          htmlInfo += `<p><b>${tenHienThi}:</b> <span class="val-display">${props[key]}</span></p>`;
-        }
+    let htmlInfo = `<h4>Thông tin ${item.tieuDe}</h4>`;
+    for (const key in props) {
+      if (
+        key !== "bbox" &&
+        key !== "geom" &&
+        key !== "id" &&
+        !WF_SYSTEM_FIELDS.has(key) &&
+        props[key] !== null &&
+        props[key] !== ""
+      ) {
+        const tenHienThi = TU_DIEN_COT[key] || key;
+        htmlInfo += `<p><b>${tenHienThi}:</b> <span class="val-display">${props[key]}</span></p>`;
       }
+    }
 
-      htmlInfo += `
-        <div class="popup-actions">
-          <button class="btn-popup btn-edit">✏️ SỬA</button>
-          <button class="btn-popup btn-delete">🗑️ XÓA</button>
-        </div>
-      `;
-      block.innerHTML = htmlInfo;
+    htmlInfo += `
+  <div class="popup-actions">
+    <button class="btn-popup btn-edit">✏️ SỬA</button>
+    <button class="btn-popup btn-delete">🗑️ XÓA</button>
+  </div>
+`;
+    block.innerHTML = htmlInfo;
 
-      block
-        .querySelector(".btn-delete")
-        .addEventListener("click", function (ev) {
-          L.DomEvent.stop(ev);
-          if (
-            confirm(
-              `Bạn có chắc chắn muốn xóa đối tượng này khỏi cơ sở dữ liệu không?`,
-            )
-          ) {
-            this.innerHTML = "⏳ Đang xóa...";
-            xoaDuLieuWFS(item.layerName, featureId, item.layerObj);
-          }
-        });
-
-      block.querySelector(".btn-edit").addEventListener("click", function (ev) {
-        L.DomEvent.stop(ev);
-        moFormSuaDoi(block, item.layerName, featureId, props, item.layerObj);
-      });
-
-      containerDiv.appendChild(block);
-      containerDiv.appendChild(document.createElement("hr"));
+    block.querySelector(".btn-delete").addEventListener("click", function (ev) {
+      L.DomEvent.stop(ev);
+      if (
+        confirm(
+          "Bạn có chắc chắn muốn xóa đối tượng này khỏi cơ sở dữ liệu không?",
+        )
+      ) {
+        this.innerHTML = "⏳ Đang xóa...";
+        xoaDuLieuWFS(item.layerName, featureId, item.layerObj);
+      }
     });
 
-    L.popup().setLatLng(e.latlng).setContent(containerDiv).openOn(map);
+    block.querySelector(".btn-edit").addEventListener("click", function (ev) {
+      L.DomEvent.stop(ev);
+      moFormSuaDoi(block, item.layerName, featureId, props, item.layerObj);
+    });
+
+    L.popup().setLatLng(e.latlng).setContent(block).openOn(map);
   });
 });
 
@@ -756,7 +750,7 @@ function moFormSuaDoi(blockElement, layerName, featureId, props, layerObj) {
 // =====================================================================
 // AUTH + WFST PROXY (JWT/RBAC)
 // =====================================================================
-const API_BASE = "http://localhost:3000";
+const API_BASE = window.WEBGIS_API_BASE || "http://localhost:3000";
 
 // vì script.js load cuối trang nên gọi thẳng được
 applyPermUI();
@@ -812,6 +806,9 @@ function wfstTotalInserted(respText) {
   );
   return m ? Number(m[1]) : null;
 }
+// ✅ dùng common.js (ẩn/hiện theo quyền + navbar)
+if (typeof applyPermUI === "function") applyPermUI();
+if (typeof initAuthNav === "function") initAuthNav();
 async function postWFST(action, layer, xml) {
   const token = getToken();
   if (!token) throw new Error("Bạn chưa đăng nhập!");
@@ -946,10 +943,91 @@ cacLoaiTaiNguyen.forEach(function (item) {
 
 var drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
+// =====================================================================
+// ĐO ĐẠC (MEASURE)
+// =====================================================================
+let cheDoVe = "resource"; // "resource" | "measure"
+let kieuDoDat = "distance"; // "distance" | "area"
+
+var measureItems = new L.FeatureGroup();
+map.addLayer(measureItems);
+
+function tinhDoDaiPolyline(latlngs) {
+  let sum = 0;
+  for (let i = 1; i < latlngs.length; i++) {
+    sum += map.distance(latlngs[i - 1], latlngs[i]);
+  }
+  return sum; // meters
+}
+function dinhDangDoDai(m) {
+  if (m >= 1000) return (m / 1000).toFixed(2) + " km";
+  return m.toFixed(2) + " m";
+}
+function geodesicArea(latlngs) {
+  // công thức chuẩn Leaflet (m2)
+  const d2r = Math.PI / 180;
+  let area = 0.0;
+  const n = latlngs.length;
+  if (n < 3) return 0;
+
+  for (let i = 0; i < n; i++) {
+    const p1 = latlngs[i];
+    const p2 = latlngs[(i + 1) % n];
+    area +=
+      (p2.lng - p1.lng) *
+      d2r *
+      (2 + Math.sin(p1.lat * d2r) + Math.sin(p2.lat * d2r));
+  }
+  area = (area * 6378137.0 * 6378137.0) / 2.0;
+  return Math.abs(area);
+}
+function dinhDangDienTich(m2) {
+  const ha = m2 / 10000;
+  if (ha >= 1)
+    return `${ha.toFixed(2)} ha (${Math.round(m2).toLocaleString("vi-VN")} m²)`;
+  return `${Math.round(m2).toLocaleString("vi-VN")} m²`;
+}
 
 map.on("draw:created", function (e) {
   var type = e.layerType;
   var layer = e.layer;
+
+  // ✅ Nếu đang ở chế độ đo đạc -> xử lý đo và THOÁT luôn (không chạy thêm tài nguyên)
+  if (cheDoVe === "measure") {
+    measureItems.addLayer(layer);
+
+    let html = `<h4 style="margin-top:0;color:#2e7d32;border-bottom:2px solid #4caf50;padding-bottom:5px;">Kết quả đo</h4>`;
+
+    if (type === "polyline") {
+      const latlngs = layer.getLatLngs();
+      const m = tinhDoDaiPolyline(latlngs);
+      html += `<p><b>Độ dài:</b> ${dinhDangDoDai(m)}</p>`;
+    } else if (type === "polygon") {
+      const rings = layer.getLatLngs();
+      const latlngs = Array.isArray(rings[0]) ? rings[0] : rings;
+      const m2 = geodesicArea(latlngs);
+      html += `<p><b>Diện tích:</b> ${dinhDangDienTich(m2)}</p>`;
+    }
+
+    html += `<div class="popup-actions">
+            <button class="btn-popup btn-delete">🧹 XÓA ĐO</button>
+          </div>`;
+
+    const box = document.createElement("div");
+    box.className = "info-popup";
+    box.innerHTML = html;
+
+    box.querySelector(".btn-delete")?.addEventListener("click", (ev) => {
+      L.DomEvent.stop(ev);
+      measureItems.removeLayer(layer);
+      map.closePopup();
+    });
+
+    layer.bindPopup(box).openPopup();
+    return;
+  }
+
+  // ✅ Còn lại là chế độ thêm tài nguyên như cũ
   drawnItems.addLayer(layer);
 
   // 1. NHÁNH VẼ ĐIỂM (MỎ KHOÁNG SẢN HOẶC SINH VẬT)
@@ -2244,6 +2322,8 @@ const uiBtnThongKe = document.getElementById("btnThongKe");
 const uiListThongKe = document.getElementById("danhSachThongKe");
 const uiDashThongKe = document.getElementById("panelThongKe");
 
+const uiBtnDoDat = document.getElementById("btnDoDat");
+const uiPanelDoDat = document.getElementById("danhSachDoDat");
 // 2. Hàm dọn dẹp: Tắt tất cả các bảng, ngoại trừ bảng đang được chỉ định
 function tatTatCaMenuTru(menuGiuLai) {
   if (menuGiuLai !== "Them") uiPanelThem?.classList.add("hidden");
@@ -2252,6 +2332,7 @@ function tatTatCaMenuTru(menuGiuLai) {
     uiListThongKe?.classList.add("hidden");
     uiDashThongKe?.classList.add("hidden");
   }
+  if (menuGiuLai !== "DoDat") uiPanelDoDat?.classList.add("hidden");
 }
 
 // 3. Nút THÊM (+)
@@ -2286,6 +2367,13 @@ uiBtnThongKe?.addEventListener("click", () => {
   tatTatCaMenuTru("ThongKe");
   if (dangAn) uiListThongKe.classList.remove("hidden");
   else uiListThongKe.classList.add("hidden");
+});
+
+uiBtnDoDat?.addEventListener("click", () => {
+  const dangAn = uiPanelDoDat.classList.contains("hidden");
+  tatTatCaMenuTru("DoDat");
+  if (dangAn) uiPanelDoDat.classList.remove("hidden");
+  else uiPanelDoDat.classList.add("hidden");
 });
 // Nút tắt bảng thống kê
 btnDongThongKe.addEventListener("click", () => {
@@ -2419,4 +2507,26 @@ document.getElementById("btnMoBaoCao").addEventListener("click", () => {
 
   // 3. Mở tab mới
   window.open("baocao.html", "_blank");
+});
+document.querySelectorAll(".measure-item").forEach((el) => {
+  el.addEventListener("click", function () {
+    kieuDoDat = this.getAttribute("data-type"); // distance | area
+    cheDoVe = "measure";
+    taiNguyenDangChon = ""; // tránh dính mode thêm tài nguyên
+    document.getElementById("danhSachDoDat")?.classList.add("hidden");
+
+    if (kieuDoDat === "distance") {
+      new L.Draw.Polyline(map).enable();
+      alert("📏 Chọn các điểm để đo khoảng cách (double click để kết thúc).");
+    } else {
+      new L.Draw.Polygon(map).enable();
+      alert("📐 Vẽ vùng để đo diện tích (double click để kết thúc).");
+    }
+  });
+});
+
+document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
+  measureItems.clearLayers();
+  map.closePopup();
+  document.getElementById("danhSachDoDat")?.classList.add("hidden");
 });

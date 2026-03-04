@@ -1,19 +1,18 @@
 const api = apiJSON; // dùng từ common.js
-
+const statusLabel = {
+  nhap: "Nhập",
+  cho_duyet: "Chờ duyệt",
+  da_duyet: "Đã duyệt",
+  cong_bo: "Công bố",
+  tu_choi: "Từ chối",
+};
 document.addEventListener("DOMContentLoaded", async () => {
-  if (!getToken()) return (location.href = "login.html");
-  if (!isAdmin()) return (location.href = "index.html");
+  if (!requireAdmin()) return;
 
   document.getElementById("helloUser").textContent =
     `Xin chào, ${localStorage.getItem("webgis_user") || "Admin"}!`;
   document.getElementById("btnLogout").onclick = () => {
-    [
-      "webgis_token",
-      "webgis_roles",
-      "webgis_permissions",
-      "webgis_perms",
-      "webgis_user",
-    ].forEach((k) => localStorage.removeItem(k));
+    clearAuth();
     location.href = "login.html";
   };
 
@@ -149,11 +148,11 @@ async function load() {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-          <td style="text-align:center">${stt}</td>
+          <td class="text-center">${stt}</td>
           <td>${it.id}</td>
           <td>
             <b>${esc(it.ten || "(không có tên)")}</b>
-            <div style="font-size:12px;color:#6b7280">${esc(layerName)}</div>
+            <div class="muted">${esc(layerName)}</div>
           </td>
           <td>
             <select class="input" data-id="${it.id}">
@@ -168,7 +167,7 @@ async function load() {
             </select>
             ${
               it.trang_thai_du_lieu === "tu_choi" && it.ly_do_tu_choi
-                ? `<div style="font-size:12px;color:#b45309">Lý do: ${esc(it.ly_do_tu_choi)}</div>`
+                ? `<div class="warn-text">Lý do: ${esc(it.ly_do_tu_choi)}</div>`
                 : ""
             }
           </td>
@@ -179,7 +178,7 @@ async function load() {
       });
 
       if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="color:#6b7280">Không có dữ liệu</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">Không có dữ liệu</td></tr>`;
         return;
       }
 
@@ -197,12 +196,7 @@ async function load() {
 
           await api("/api/admin/layer-objects/stage", {
             method: "PATCH",
-            body: JSON.stringify({
-              layer: layerName,
-              ids: [id],
-              stage,
-              reason,
-            }),
+            body: { layer: layerName, ids: [id], stage, reason },
           });
 
           await loadObjects(); // ✅ reload đúng trang hiện tại

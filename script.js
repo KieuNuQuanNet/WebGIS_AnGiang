@@ -459,24 +459,53 @@ function taoPopupThongTin(feature, tieuDe, layerName, layerObj) {
   }
 
   const coThaoTac = !!(layerName && layerObj && featureId);
-  if (coThaoTac) {
-    htmlInfo += `
-      <div class="popup-actions">
-        <button class="btn-popup btn-edit">✏️ SỬA</button>
-        <button class="btn-popup btn-delete">🗑️ XÓA</button>
-      </div>
-    `;
+
+  // ✅ Chỉ Admin/Cán bộ mới được Sửa/Xóa (khớp backend: admin.users, feature.insert/update/delete)
+  const canEdit =
+    coThaoTac &&
+    (hasPerm("admin.users") ||
+      hasPerm("feature.update") ||
+      hasPerm("feature.insert"));
+
+  const canDelete =
+    coThaoTac &&
+    (hasPerm("admin.users") ||
+      hasPerm("feature.delete") ||
+      hasPerm("feature.insert"));
+
+  // ✅ Chỉ render nút nếu có quyền
+  if (canEdit || canDelete) {
+    htmlInfo += `<div class="popup-actions">`;
+    if (canEdit)
+      htmlInfo += `<button class="btn-popup btn-edit">✏️ SỬA</button>`;
+    if (canDelete)
+      htmlInfo += `<button class="btn-popup btn-delete">🗑️ XÓA</button>`;
+    htmlInfo += `</div>`;
   }
 
   block.innerHTML = htmlInfo;
   L.DomEvent.disableClickPropagation(block);
   L.DomEvent.disableScrollPropagation(block);
 
-  if (coThaoTac) {
+  // ✅ Gắn event theo quyền + chặn thêm lần nữa khi bấm
+  if (canDelete) {
     block
       .querySelector(".btn-delete")
       ?.addEventListener("click", function (ev) {
         L.DomEvent.stop(ev);
+
+        // re-check phòng trường hợp quyền đổi trong lúc đang mở popup
+        if (
+          !(
+            hasPerm("admin.users") ||
+            hasPerm("feature.delete") ||
+            hasPerm("feature.insert")
+          )
+        ) {
+          alert("🔒 Bạn không có quyền Xóa dữ liệu!");
+          return;
+        }
+
         if (
           confirm(
             "Bạn có chắc chắn muốn xóa đối tượng này khỏi cơ sở dữ liệu không?",
@@ -486,9 +515,23 @@ function taoPopupThongTin(feature, tieuDe, layerName, layerObj) {
           xoaDuLieuWFS(layerName, featureId, layerObj);
         }
       });
+  }
 
+  if (canEdit) {
     block.querySelector(".btn-edit")?.addEventListener("click", function (ev) {
       L.DomEvent.stop(ev);
+
+      if (
+        !(
+          hasPerm("admin.users") ||
+          hasPerm("feature.update") ||
+          hasPerm("feature.insert")
+        )
+      ) {
+        alert("🔒 Bạn không có quyền Sửa dữ liệu!");
+        return;
+      }
+
       moFormSuaDoi(block, layerName, featureId, props, layerObj);
     });
   }
@@ -611,11 +654,15 @@ map.on("click", function (e) {
     // ✅ Chỉ hiển thị 1 đối tượng (ưu tiên theo thứ tự promises.push)
     const item = validResults[0];
 
-    const featureId = item.feature.id;
-    const props = item.feature.properties || {};
+    // ✅ Dùng 1 chuẩn popup duy nhất (đã có phân quyền Sửa/Xóa)
+    const block = taoPopupThongTin(
+      item.feature,
+      item.tieuDe,
+      item.layerName,
+      item.layerObj,
+    );
 
-    const block = document.createElement("div");
-    block.className = "info-popup";
+    L.popup().setLatLng(e.latlng).setContent(block).openOn(map);
     L.DomEvent.disableClickPropagation(block);
     L.DomEvent.disableScrollPropagation(block);
 
@@ -784,7 +831,7 @@ function wfInsertMetaXml(nsPrefix) {
   `
     : "";
 
-  const st = hasPerm("admin.users") ? "nhap" : "cho_duyet"; // ✅ admin=nhap, cán bộ=cho_duyet
+  const st = isAdmin() ? "nhap" : "cho_duyet"; // ✅ đúng theo RBAC // ✅ admin=nhap, cán bộ=cho_duyet
 
   return `
   <${nsPrefix}:trang_thai_du_lieu>${st}</${nsPrefix}:trang_thai_du_lieu>
@@ -2004,6 +2051,11 @@ var resultLayer = new L.FeatureGroup().addTo(map);
 // 1. Quản lý bảng Truy vấn
 const bangTruyVan = document.getElementById("bangTruyVan");
 const btnDongTruyVan = document.getElementById("btnDongTruyVan");
+// ✅ Chặn click/scroll từ panel rớt xuống map (Leaflet.draw hay nuốt click)
+if (window.L && bangTruyVan) {
+  L.DomEvent.disableClickPropagation(bangTruyVan);
+  L.DomEvent.disableScrollPropagation(bangTruyVan);
+}
 
 // 👉 TÍNH NĂNG THOÁT TRUY VẤN KHI NHẤN DẤU X (CẬP NHẬT MỚI)
 btnDongTruyVan.addEventListener("click", () => {
@@ -2135,24 +2187,32 @@ cboLopDuLieu.addEventListener("change", capNhatOChonTinhTrang);
 capNhatOChonTinhTrang(); // Chạy lần đầu
 
 // --- LỆNH TRUY VẤN LÊN MÁY CHỦ ---
-document.getElementById("btnApDung").addEventListener("click", () => {
+const btnApDung = document.getElementById("btnApDung");
+
+btnApDung?.addEventListener("click", (e) => {
+  // ✅ chặn cho chắc (tránh Leaflet/Draw bắt click)
+  if (window.L) L.DomEvent.stop(e);
+  else {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+  }
+
   const chonLop = cboLopDuLieu.value;
   const chonTinhTrang = cboTinhTrang.value;
-  const tuKhoa = document.getElementById("txtTuKhoa").value.trim();
+  const tuKhoaRaw = document.getElementById("txtTuKhoa").value.trim();
+  const tuKhoa = tuKhoaRaw.replace(/'/g, "''"); // escape CQL
 
   let cqlArray = [];
 
-  // ✅ Luôn chỉ truy vấn dữ liệu đã công bố
+  // ✅ Luôn chỉ truy vấn dữ liệu đã công bố (giữ như bạn đang làm)
   cqlArray.push(CQL_CONG_BO);
 
-  let cauHinhDong = CAU_HINH_LOC_DONG[chonLop];
+  const cauHinhDong = CAU_HINH_LOC_DONG[chonLop];
 
-  // Khớp đúng cột DB để truy vấn
   if (chonTinhTrang !== "all" && cauHinhDong) {
     cqlArray.push(`${cauHinhDong.cotDB} = '${chonTinhTrang}'`);
   }
 
-  // Khớp đúng cột Tên để truy vấn
   if (tuKhoa !== "") {
     if (chonLop === "angiang:khoangsan_diem_mo")
       cqlArray.push(`ten_don_vi ILIKE '%${tuKhoa}%'`);
@@ -2166,14 +2226,16 @@ document.getElementById("btnApDung").addEventListener("click", () => {
       cqlArray.push(`ten_loai ILIKE '%${tuKhoa}%'`);
   }
 
-  let cqlString =
+  const cqlString =
     cqlArray.length > 0
       ? `&CQL_FILTER=${encodeURIComponent(cqlArray.join(" AND "))}`
       : "";
-  let urlWFSQuery = `/myproxy/angiang/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=${chonLop}&outputFormat=application/json${cqlString}`;
 
-  const btn = document.getElementById("btnApDung");
-  btn.innerHTML = "⏳ ĐANG LẤY DỮ LIỆU...";
+  const urlWFSQuery =
+    `/myproxy/angiang/ows?service=WFS&version=1.1.0&request=GetFeature` +
+    `&typeName=${chonLop}&outputFormat=application/json${cqlString}`;
+
+  btnApDung.innerHTML = "⏳ ĐANG LẤY DỮ LIỆU...";
 
   fetch(urlWFSQuery)
     .then((res) => res.text())
@@ -2181,20 +2243,20 @@ document.getElementById("btnApDung").addEventListener("click", () => {
       if (text.startsWith("<") || text.includes("Exception")) {
         console.error("Lỗi XML:", text);
         alert("Lệnh truy vấn bị lỗi, hãy xem F12!");
-        btn.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
+        btnApDung.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
         return;
       }
-      try {
-        let data = JSON.parse(text);
-        HienThiKetQuaTruyVan(data.features, chonLop);
-        btn.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
-        tabBtns[1].click();
-      } catch (e) {
-        console.error("Lỗi JSON:", e);
-      }
+
+      const data = JSON.parse(text);
+      HienThiKetQuaTruyVan(data.features, chonLop);
+      btnApDung.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
+
+      // ✅ chuyển tab “Kết quả” nhưng không phụ thuộc tabBtns biến global
+      bangTruyVan?.querySelector('.tab-btn[data-target="tabKetQua"]')?.click();
     })
     .catch((err) => {
-      btn.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
+      console.error(err);
+      btnApDung.innerHTML = "ÁP DỤNG LỌC DỮ LIỆU";
       alert("Lỗi mạng!");
     });
 });
@@ -2370,6 +2432,12 @@ uiBtnThongKe?.addEventListener("click", () => {
 });
 
 uiBtnDoDat?.addEventListener("click", () => {
+  // ✅ Chỉ cán bộ (feature.insert) hoặc admin (admin.users) mới được đo đạc
+  if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
+    alert("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
+    return;
+  }
+
   const dangAn = uiPanelDoDat.classList.contains("hidden");
   tatTatCaMenuTru("DoDat");
   if (dangAn) uiPanelDoDat.classList.remove("hidden");
@@ -2510,9 +2578,14 @@ document.getElementById("btnMoBaoCao").addEventListener("click", () => {
 });
 document.querySelectorAll(".measure-item").forEach((el) => {
   el.addEventListener("click", function () {
+    if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
+      alert("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
+      return;
+    }
+
     kieuDoDat = this.getAttribute("data-type"); // distance | area
     cheDoVe = "measure";
-    taiNguyenDangChon = ""; // tránh dính mode thêm tài nguyên
+    taiNguyenDangChon = "";
     document.getElementById("danhSachDoDat")?.classList.add("hidden");
 
     if (kieuDoDat === "distance") {
@@ -2526,6 +2599,11 @@ document.querySelectorAll(".measure-item").forEach((el) => {
 });
 
 document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
+  if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
+    alert("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
+    return;
+  }
+
   measureItems.clearLayers();
   map.closePopup();
   document.getElementById("danhSachDoDat")?.classList.add("hidden");

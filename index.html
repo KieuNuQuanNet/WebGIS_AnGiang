@@ -185,10 +185,20 @@
           </ul>
         </div>
         <div class="tool-group">
-          <button id="btnDoDat" class="tool-btn btn-measure" title="Đo đạc">
+          <button
+            id="btnDoDat"
+            class="tool-btn btn-measure"
+            title="Đo đạc"
+            data-perm="feature.insert"
+          >
             📏
           </button>
-          <div id="danhSachDoDat" class="resource-list hidden">
+
+          <div
+            id="danhSachDoDat"
+            class="resource-list hidden"
+            data-perm="feature.insert"
+          >
             <h4>Đo đạc</h4>
             <ul>
               <li class="measure-item" data-type="distance">
@@ -252,7 +262,9 @@
           />
         </div>
 
-        <button class="btn-apply" id="btnApDung">ÁP DỤNG LỌC DỮ LIỆU</button>
+        <button type="button" class="btn-apply" id="btnApDung">
+          ÁP DỤNG LỌC DỮ LIỆU
+        </button>
       </div>
 
       <!-- TAB 2: HIỂN THỊ KẾT QUẢ -->

@@ -140,8 +140,8 @@ function renderTable(users) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${(state.page - 1) * state.limit + idx + 1}</td>
-      <td><b>${u.ho_ten || ""}</b></td>
-      <td>${u.email || ""}</td>
+      <td><b>${esc(u.ho_ten || "")}</b></td>
+  <td>${esc(u.email || "")}</td>
       <td><select data-id="${u.id}" class="selRole">${roleOptions}</select></td>
       <td>
         <select data-id="${u.id}" class="selStatus">${statusOptions}</select>

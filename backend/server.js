@@ -1,5 +1,14 @@
 // backend/server.js
 require("dotenv").config();
+
+// ✅ whitelist layer cho WFS/WFS-T (đọc từ .env: ALLOWED_LAYERS)
+const ALLOWED = new Set(
+  (process.env.ALLOWED_LAYERS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
@@ -476,8 +485,25 @@ function validateWfstRequest(req, res, next) {
 
   if (action === "insert" && !xml.includes("<wfs:Insert"))
     return res.status(400).json({ message: "XML không phải Insert" });
-  if (action === "update" && !xml.includes("<wfs:Update"))
-    return res.status(400).json({ message: "XML không phải Update" });
+  // ✅ chống đánh tráo layer trong XML
+  if (
+    (action === "update" || action === "delete") &&
+    !xml.includes(`typeName="${layer}"`)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "typeName trong XML không khớp X-Layer" });
+  }
+  if (
+    action === "insert" &&
+    !xml.includes(`<${layer.split(":")[1]}`) &&
+    !xml.includes(`<${layer}`)
+  ) {
+    // (tùy cách bạn tạo tag nsPrefix) — tối thiểu nên check layer name xuất hiện
+    return res
+      .status(400)
+      .json({ message: "XML Insert không khớp layer (thiếu tag layer)" });
+  }
   if (action === "delete" && !xml.includes("<wfs:Delete"))
     return res.status(400).json({ message: "XML không phải Delete" });
 
@@ -964,7 +990,6 @@ app.get(
   },
 );
 
-// 3) Set stage workflow (nhập/cập nhật/duyệt/công bố/từ chối)
 app.patch("/api/workflow/set-stage", authRequired, async (req, res) => {
   try {
     const { layer, ids, stage, reason } = req.body || {};
@@ -974,8 +999,14 @@ app.patch("/api/workflow/set-stage", authRequired, async (req, res) => {
     if (!Array.isArray(ids) || ids.length === 0)
       return res.status(400).json({ message: "Thiếu ids" });
 
-    // ✅ ID trong token của bạn là sub (signToken dùng sub:user.id)
-    const userId = req.user.sub;
+    const userId = Number(req.user?.sub);
+    if (!Number.isFinite(userId))
+      return res.status(401).json({ message: "Token không hợp lệ (sub)" });
+
+    const idsInt = ids.map((v) => Number(v));
+    if (idsInt.some((v) => !Number.isFinite(v))) {
+      return res.status(400).json({ message: "ids không hợp lệ (phải là số)" });
+    }
 
     const roles = req.user?.roles || [];
     const perms = req.user?.permissions || [];
@@ -989,54 +1020,69 @@ app.patch("/api/workflow/set-stage", authRequired, async (req, res) => {
     const map = {
       nhap: {
         status: "nhap",
-        set: "nguoi_tao=$2, ngay_tao=COALESCE(ngay_tao, now()), ly_do_tu_choi=NULL",
+        set: "nguoi_tao=$1::int, ngay_tao=COALESCE(ngay_tao, now()), ly_do_tu_choi=NULL",
+        needsReason: false,
       },
       cho_duyet: {
         status: "cho_duyet",
-        set: "nguoi_cap_nhat=$2, ngay_cap_nhat=now(), ly_do_tu_choi=NULL",
+        set: "nguoi_cap_nhat=$1::int, ngay_cap_nhat=now(), ly_do_tu_choi=NULL",
+        needsReason: false,
       },
       da_duyet: {
         status: "da_duyet",
-        set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=NULL",
+        set: "nguoi_phe_duyet=$1::int, ngay_phe_duyet=now(), ly_do_tu_choi=NULL",
+        needsReason: false,
       },
       cong_bo: {
         status: "cong_bo",
-        set: "nguoi_cong_bo=$2, ngay_cong_bo=now()",
+        set: "nguoi_cong_bo=$1::int, ngay_cong_bo=now()",
+        needsReason: false,
       },
       tu_choi: {
         status: "tu_choi",
-        set: "nguoi_phe_duyet=$2, ngay_phe_duyet=now(), ly_do_tu_choi=$3",
+        set: "nguoi_phe_duyet=$1::int, ngay_phe_duyet=now(), ly_do_tu_choi=$2::text",
+        needsReason: true,
       },
     };
-    if (!map[stage])
-      return res.status(400).json({ message: "stage không hợp lệ" });
 
-    if (
-      (stage === "da_duyet" || stage === "cong_bo" || stage === "tu_choi") &&
-      !isAdmin
-    ) {
+    const cfg = map[stage];
+    if (!cfg) return res.status(400).json({ message: "stage không hợp lệ" });
+
+    if (["da_duyet", "cong_bo", "tu_choi"].includes(stage) && !isAdmin) {
       return res
         .status(403)
         .json({ message: "Chỉ admin được duyệt/công bố/từ chối" });
     }
-    if ((stage === "cap_nhat" || stage === "nhap") && !isStaff) {
+    if (["nhap", "cho_duyet"].includes(stage) && !isStaff) {
       return res.status(403).json({ message: "Không đủ quyền cập nhật" });
     }
+    if (cfg.needsReason && !String(reason || "").trim()) {
+      return res.status(400).json({ message: "Thiếu lý do từ chối" });
+    }
 
-    const placeholders = ids.map((_, i) => `$${i + 4}`).join(",");
+    let placeholders = "";
+    let params = [];
+
+    if (stage === "tu_choi") {
+      placeholders = idsInt.map((_, i) => `$${i + 3}`).join(",");
+      params = [userId, String(reason || ""), ...idsInt];
+    } else {
+      placeholders = idsInt.map((_, i) => `$${i + 2}`).join(",");
+      params = [userId, ...idsInt];
+    }
+
     const q = `
       UPDATE public.${table}
-      SET trang_thai_du_lieu='${map[stage].status}', ${map[stage].set}
+      SET trang_thai_du_lieu='${cfg.status}', ${cfg.set}
       WHERE id IN (${placeholders})
       RETURNING id, trang_thai_du_lieu;
     `;
-    const params = [layer, userId, String(reason || ""), ...idsInt];
 
     const { rows } = await pool.query(q, params);
     return res.json({ updated: rows.length, rows });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ message: "Lỗi workflow" });
+    return res.status(500).json({ message: "Lỗi workflow", detail: e.message });
   }
 });
 // ===== Start =====

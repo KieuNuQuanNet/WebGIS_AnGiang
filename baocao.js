@@ -64,7 +64,7 @@ function renderReport(data) {
   let headRow = "<tr><th>STT</th>";
   keys.forEach((k) => {
     const tenTiengViet = TU_DIEN_COT[k] || k;
-    headRow += `<th>${tenTiengViet}</th>`;
+    headRow += `<th>${esc(tenTiengViet)}</th>`;
   });
   thead.innerHTML = headRow + "</tr>";
 
@@ -77,7 +77,7 @@ function renderReport(data) {
         f.properties[k] !== null && f.properties[k] !== ""
           ? f.properties[k]
           : "-";
-      rowHtml += `<td>${value}</td>`;
+      rowHtml += `<td>${esc(value)}</td>`;
     });
     bodyHtml += rowHtml + "</tr>";
   });

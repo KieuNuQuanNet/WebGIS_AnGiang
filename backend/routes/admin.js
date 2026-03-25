@@ -27,6 +27,158 @@ const LAYER_TABLE_MAP = Object.fromEntries(
   }),
 );
 
+const IMPORT_DENIED_COLUMNS = new Set([
+  "id",
+  "gid",
+  "fid",
+  "objectid",
+  "bbox",
+  "geom",
+  "trang_thai_du_lieu",
+  "ngay_tao",
+  "nguoi_tao",
+  "ngay_cap_nhat",
+  "nguoi_cap_nhat",
+  "ngay_phe_duyet",
+  "nguoi_phe_duyet",
+  "ngay_cong_bo",
+  "nguoi_cong_bo",
+  "ly_do",
+]);
+
+const IMPORT_DEFAULTS_BY_TABLE = {
+  khoangsan_diem_mo: {
+    loai_khoang_san: "Chưa phân loại",
+    tinh_trang: "Chưa xác định",
+    tru_luong: 0,
+    dien_tich: 0,
+    nguon_du_lieu: "Nhập từ file",
+  },
+  dongvat_ag: {
+    nhom: "Chưa xác định",
+    vi_tri_phan_bo: "Chưa xác định",
+    muc_do_nguy_cap: "Ít quan tâm (LC)",
+  },
+  thucvat_ag: {
+    nhom: "Chưa xác định",
+    vi_tri_phan_bo: "Chưa xác định",
+    muc_do_nguy_cap: "Ít quan tâm (LC)",
+  },
+  rung: {
+    nhom: "rừng",
+    loai_rung: "Rừng phòng hộ",
+    tinh_trang: "Chưa xác định",
+    nguon_du_lieu: "Nhập từ file",
+  },
+  waterways: {
+    loai: "kênh",
+    cap: "chính",
+    nguon: "Nhập từ file",
+  },
+  dat: {
+    nguon_du_lieu: "Nhập từ file",
+  },
+};
+
+const IMPORT_COLUMN_ALIASES = {
+  ten: ["ten", "name", "ten_doi_tuong"],
+  ten_don_vi: ["ten_don_vi", "name", "company_name", "ten_cong_ty", "ten_mo"],
+  ten_loai: ["ten_loai", "name", "species", "species_name", "ten_sinh_vat"],
+  nhom: ["nhom", "group"],
+  vi_tri_phan_bo: ["vi_tri_phan_bo", "vi_tri", "dia_diem", "location"],
+  muc_do_nguy_cap: ["muc_do_nguy_cap", "nguy_cap", "muc_do", "status"],
+  phan_loai: ["phan_loai", "classification"],
+  loai_khoang_san: ["loai_khoang_san", "loai", "mineral_type"],
+  tinh_trang: ["tinh_trang", "status"],
+  tru_luong: ["tru_luong", "reserve", "reserves"],
+  dien_tich: ["dien_tich", "area"],
+  nguon_du_lieu: ["nguon_du_lieu", "nguon", "source"],
+  loai_rung: ["loai_rung", "loai"],
+  loai_dat_su_dung: ["loai_dat_su_dung", "loai"],
+  nhom_su_dung: ["nhom_su_dung", "nhom"],
+  loai: ["loai", "type"],
+  cap: ["cap", "level"],
+  nguon: ["nguon", "source"],
+};
+
+function normalizeImportKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeImportValue(value, dataType, fieldName) {
+  if (value === undefined || value === null || value === "") return null;
+
+  const type = String(dataType || "").toLowerCase();
+
+  if (["smallint", "integer", "bigint"].includes(type)) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+      throw new Error(`Giá trị "${fieldName}" không hợp lệ`);
+    }
+    return parsed;
+  }
+
+  if (
+    ["numeric", "real", "double precision", "decimal"].includes(type) ||
+    type.startsWith("timestamp") ||
+    type === "date"
+  ) {
+    const parsed = Number(value);
+    if (type.startsWith("timestamp") || type === "date") {
+      return String(value);
+    }
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`Giá trị "${fieldName}" không hợp lệ`);
+    }
+    return parsed;
+  }
+
+  if (type === "boolean") {
+    const normalized = String(value).trim().toLowerCase();
+    if (["true", "1", "yes", "y"].includes(normalized)) return true;
+    if (["false", "0", "no", "n"].includes(normalized)) return false;
+    throw new Error(`Giá trị "${fieldName}" không hợp lệ`);
+  }
+
+  return String(value);
+}
+
+function resolveImportProps(inputProps, table) {
+  const props = inputProps && typeof inputProps === "object" ? inputProps : {};
+  const normalizedMap = new Map(
+    Object.entries(props).map(([key, value]) => [normalizeImportKey(key), value]),
+  );
+
+  const defaults = IMPORT_DEFAULTS_BY_TABLE[table] || {};
+  const resolved = {};
+
+  for (const [key, value] of Object.entries(props)) {
+    resolved[key] = value;
+  }
+
+  Object.entries(IMPORT_COLUMN_ALIASES).forEach(([column, aliases]) => {
+    if (resolved[column] !== undefined && resolved[column] !== null && resolved[column] !== "") {
+      return;
+    }
+
+    const hit = aliases
+      .map((alias) => normalizedMap.get(normalizeImportKey(alias)))
+      .find((value) => value !== undefined && value !== null && value !== "");
+
+    if (hit !== undefined) {
+      resolved[column] = hit;
+    }
+  });
+
+  return { ...defaults, ...resolved };
+}
+
 function normalizeIntegerInput(value, fieldName) {
   if (typeof value === "number") {
     if (!Number.isSafeInteger(value)) {
@@ -1187,6 +1339,155 @@ router.delete(
     } catch (e) {
       console.error("DELETE_RESOURCE_IMAGE_ERROR:", e);
       res.status(500).json({ message: e.message || "Lỗi xóa ảnh tài nguyên" });
+    }
+  },
+);
+
+router.post(
+  "/import-features",
+  authenticateToken,
+  requirePerm("feature.approve"),
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const { layer, format, records } = req.body || {};
+      const meta = LAYER_META[layer];
+
+      if (!meta) {
+        return res.status(400).json({ message: "Lớp dữ liệu không hợp lệ" });
+      }
+
+      if (!["csv", "geojson"].includes(String(format || "").toLowerCase())) {
+        return res.status(400).json({ message: "Định dạng import không hợp lệ" });
+      }
+
+      if (!Array.isArray(records) || !records.length) {
+        return res.status(400).json({ message: "Không có dữ liệu để nhập" });
+      }
+
+      if (records.length > 1000) {
+        return res.status(400).json({ message: "Mỗi lần chỉ nhập tối đa 1000 bản ghi" });
+      }
+
+      const table = meta.table;
+      const uid = normalizeIntegerInput(
+        req.user?.sub ?? req.user?.id ?? "0",
+        "user id",
+      );
+      const now = new Date().toISOString();
+
+      const { rows: colRows } = await client.query(
+        `SELECT column_name, data_type, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = $1`,
+        [table],
+      );
+
+      const validCols = new Map(colRows.map((row) => [row.column_name, row]));
+
+      if (!validCols.has("geom")) {
+        return res.status(400).json({ message: "Lớp dữ liệu không có cột hình học" });
+      }
+
+      await client.query("BEGIN");
+
+      let imported = 0;
+
+      for (let index = 0; index < records.length; index += 1) {
+        const record = records[index] || {};
+        const geometry = record.geometry;
+        const rawProps = resolveImportProps(record.properties, table);
+
+        if (!geometry || typeof geometry !== "object") {
+          throw new Error(`Bản ghi ${index + 1} thiếu geometry hợp lệ`);
+        }
+
+        const insertCols = [];
+        const insertVals = [];
+        const params = [];
+        let paramIndex = 1;
+
+        Object.entries(rawProps).forEach(([key, value]) => {
+          const colMeta = validCols.get(key);
+          if (!colMeta || IMPORT_DENIED_COLUMNS.has(key)) return;
+
+          const normalizedValue = normalizeImportValue(value, colMeta.data_type, key);
+          if (normalizedValue === null && colMeta.is_nullable === "NO") return;
+
+          insertCols.push(key);
+          insertVals.push(`$${paramIndex}`);
+          params.push(normalizedValue);
+          paramIndex += 1;
+        });
+
+        if (validCols.has("trang_thai_du_lieu")) {
+          insertCols.push("trang_thai_du_lieu");
+          insertVals.push(`$${paramIndex}::text::public.trang_thai_du_lieu_enum`);
+          params.push("nhap");
+          paramIndex += 1;
+        }
+
+        if (validCols.has("ngay_tao")) {
+          insertCols.push("ngay_tao");
+          insertVals.push(`$${paramIndex}`);
+          params.push(now);
+          paramIndex += 1;
+        }
+
+        if (validCols.has("nguoi_tao")) {
+          insertCols.push("nguoi_tao");
+          insertVals.push(`$${paramIndex}::bigint`);
+          params.push(uid);
+          paramIndex += 1;
+        }
+
+        if (validCols.has("ngay_cap_nhat")) {
+          insertCols.push("ngay_cap_nhat");
+          insertVals.push(`$${paramIndex}`);
+          params.push(now);
+          paramIndex += 1;
+        }
+
+        if (validCols.has("nguoi_cap_nhat")) {
+          insertCols.push("nguoi_cap_nhat");
+          insertVals.push(`$${paramIndex}::bigint`);
+          params.push(uid);
+          paramIndex += 1;
+        }
+
+        insertCols.push("geom");
+        insertVals.push(`ST_SetSRID(ST_GeomFromGeoJSON($${paramIndex}), 4326)`);
+        params.push(JSON.stringify(geometry));
+
+        const sql = `
+          INSERT INTO public.${table} (${insertCols.join(", ")})
+          VALUES (${insertVals.join(", ")})
+        `;
+
+        await client.query(sql, params);
+        imported += 1;
+      }
+
+      await client.query("COMMIT");
+
+      return res.json({
+        ok: true,
+        imported,
+        message: `Đã nhập ${imported} bản ghi vào lớp ${meta.label || layer}`,
+      });
+    } catch (e) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (_) {}
+
+      console.error("IMPORT_FEATURES_ERROR:", e);
+      return res.status(500).json({
+        message: e.message || "Lỗi nhập dữ liệu từ file",
+      });
+    } finally {
+      client.release();
     }
   },
 );

@@ -160,6 +160,315 @@ function extractPendingNewData(row) {
 
   return data;
 }
+
+const importState = {
+  parsed: null,
+  format: "",
+  fileName: "",
+  layer: "",
+};
+
+function normalizeImportKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function parseCsvText(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (ch === "\r" && next === "\n") i += 1;
+      row.push(cell);
+      if (row.some((item) => String(item).trim() !== "")) rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  row.push(cell);
+  if (row.some((item) => String(item).trim() !== "")) rows.push(row);
+  return rows;
+}
+
+function parseCsvImport(text) {
+  const rows = parseCsvText(text);
+  if (rows.length < 2) {
+    throw new Error("CSV phải có dòng tiêu đề và ít nhất 1 dòng dữ liệu");
+  }
+
+  const headers = rows[0].map((item) => String(item || "").trim());
+  const normalizedHeaders = headers.map(normalizeImportKey);
+  const lonAliases = ["lon", "lng", "longitude", "x", "kinh_do", "kinhdo"];
+  const latAliases = ["lat", "latitude", "y", "vi_do", "vido"];
+  const lonIndex = normalizedHeaders.findIndex((key) => lonAliases.includes(key));
+  const latIndex = normalizedHeaders.findIndex((key) => latAliases.includes(key));
+
+  if (lonIndex < 0 || latIndex < 0) {
+    throw new Error("CSV cần có cột tọa độ lon/lng/x và lat/y");
+  }
+
+  const records = [];
+
+  rows.slice(1).forEach((cols, idx) => {
+    const lon = Number(String(cols[lonIndex] || "").trim());
+    const lat = Number(String(cols[latIndex] || "").trim());
+
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+      throw new Error(`Dòng ${idx + 2} có tọa độ không hợp lệ`);
+    }
+
+    const properties = {};
+    headers.forEach((header, colIdx) => {
+      if (!header || colIdx === lonIndex || colIdx === latIndex) return;
+      const value = String(cols[colIdx] ?? "").trim();
+      if (value === "") return;
+      properties[header] = value;
+    });
+
+    records.push({
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties,
+    });
+  });
+
+  return { format: "csv", records };
+}
+
+function parseGeoJsonImport(text) {
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    throw new Error("GeoJSON không hợp lệ");
+  }
+
+  const features =
+    raw?.type === "FeatureCollection"
+      ? raw.features
+      : raw?.type === "Feature"
+        ? [raw]
+        : [];
+
+  if (!Array.isArray(features) || !features.length) {
+    throw new Error("GeoJSON phải là Feature hoặc FeatureCollection");
+  }
+
+  const records = features.map((feature, idx) => {
+    if (!feature?.geometry || !feature.geometry.type) {
+      throw new Error(`Feature ${idx + 1} thiếu geometry`);
+    }
+
+    return {
+      geometry: feature.geometry,
+      properties:
+        feature.properties && typeof feature.properties === "object"
+          ? feature.properties
+          : {},
+    };
+  });
+
+  return { format: "geojson", records };
+}
+
+function buildImportPreviewHtml(parsed, fileName, layerLabel) {
+  const counts = parsed.records.reduce((acc, item) => {
+    const key = item?.geometry?.type || "Unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const samples = parsed.records
+    .slice(0, 3)
+    .map((item) => {
+      const props = item.properties || {};
+      return props.ten_loai || props.ten || props.ten_don_vi || "Không tên";
+    })
+    .join(", ");
+
+  return `
+    <div><strong>Lớp đích:</strong> ${escHtml(layerLabel || "-")}</div>
+    <div><strong>File:</strong> ${escHtml(fileName || "-")}</div>
+    <div><strong>Số bản ghi hợp lệ:</strong> ${parsed.records.length}</div>
+    <div><strong>Hình học:</strong> ${escHtml(
+      Object.entries(counts)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(" | "),
+    )}</div>
+    ${
+      samples
+        ? `<div><strong>Mẫu dữ liệu:</strong> ${escHtml(samples)}</div>`
+        : ""
+    }
+  `;
+}
+
+async function parseImportFile(format, file) {
+  const text = await file.text();
+  return format === "csv" ? parseCsvImport(text) : parseGeoJsonImport(text);
+}
+
+function setupImportPanel() {
+  const formatSelect = document.getElementById("cboImportFormat");
+  const fileInput = document.getElementById("inpImportFile");
+  const previewEl = document.getElementById("importPreview");
+  const btnPreview = document.getElementById("btnDocThuFile");
+  const btnImport = document.getElementById("btnThucHienImport");
+  const layerSelect = document.getElementById("layerSelect");
+
+  if (!formatSelect || !fileInput || !previewEl || !btnPreview || !btnImport) {
+    return;
+  }
+
+  const resetPreview = () => {
+    importState.parsed = null;
+    importState.format = "";
+    importState.fileName = "";
+    importState.layer = "";
+    previewEl.className = "msg hidden";
+    previewEl.innerHTML = "";
+  };
+
+  const syncAccept = () => {
+    fileInput.accept =
+      formatSelect.value === "csv" ? ".csv,text/csv" : ".geojson,.json,application/json";
+  };
+
+  formatSelect.addEventListener("change", () => {
+    fileInput.value = "";
+    syncAccept();
+    resetPreview();
+  });
+
+  fileInput.addEventListener("change", resetPreview);
+  syncAccept();
+
+  btnPreview.onclick = async () => {
+    const file = fileInput.files?.[0];
+    const layer = layerSelect?.value || "";
+    const layerLabel =
+      layerSelect?.selectedOptions?.[0]?.textContent?.trim() || layer || "-";
+
+    if (!file) {
+      showToast("Bạn chưa chọn file", "error");
+      return;
+    }
+    if (!layer) {
+      showToast("Bạn chưa chọn lớp đích", "error");
+      return;
+    }
+
+    btnPreview.disabled = true;
+    btnPreview.textContent = "Đang đọc...";
+
+    try {
+      const parsed = await parseImportFile(formatSelect.value, file);
+      importState.parsed = parsed;
+      importState.format = formatSelect.value;
+      importState.fileName = file.name;
+      importState.layer = layer;
+      previewEl.className = "msg show";
+      previewEl.innerHTML = buildImportPreviewHtml(parsed, file.name, layerLabel);
+      showToast(`Đọc thử thành công ${parsed.records.length} bản ghi`);
+    } catch (e) {
+      resetPreview();
+      previewEl.className = "msg show";
+      previewEl.textContent = e.message;
+      showToast(e.message, "error");
+    } finally {
+      btnPreview.disabled = false;
+      btnPreview.textContent = "Đọc thử file";
+    }
+  };
+
+  btnImport.onclick = async () => {
+    const file = fileInput.files?.[0];
+    const layer = layerSelect?.value || "";
+    const layerLabel =
+      layerSelect?.selectedOptions?.[0]?.textContent?.trim() || layer || "-";
+
+    if (!file) {
+      showToast("Bạn chưa chọn file", "error");
+      return;
+    }
+    if (!layer) {
+      showToast("Bạn chưa chọn lớp đích", "error");
+      return;
+    }
+
+    btnImport.disabled = true;
+    btnImport.textContent = "Đang nhập...";
+
+    try {
+      let parsed = importState.parsed;
+      if (
+        !parsed ||
+        importState.fileName !== file.name ||
+        importState.format !== formatSelect.value ||
+        importState.layer !== layer
+      ) {
+        parsed = await parseImportFile(formatSelect.value, file);
+        importState.parsed = parsed;
+        importState.format = formatSelect.value;
+        importState.fileName = file.name;
+        importState.layer = layer;
+      }
+
+      const result = await api("/api/admin/import-features", {
+        method: "POST",
+        body: {
+          layer,
+          format: formatSelect.value,
+          records: parsed.records,
+        },
+      });
+
+      previewEl.className = "msg show";
+      previewEl.innerHTML = buildImportPreviewHtml(parsed, file.name, layerLabel);
+      showToast(result.message || "Nhập dữ liệu thành công");
+      fileInput.value = "";
+      importState.parsed = null;
+      await load();
+    } catch (e) {
+      previewEl.className = "msg show";
+      previewEl.textContent = e.message;
+      showToast(e.message, "error");
+    } finally {
+      btnImport.disabled = false;
+      btnImport.textContent = "Nhập dữ liệu";
+    }
+  };
+}
 // khỏi tạo giao diện
 document.addEventListener("DOMContentLoaded", async () => {
   if (!requireApprover()) return;
@@ -210,6 +519,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
+
+  setupImportPanel();
 
   const btnTrash = document.getElementById("btnTrash");
   if (btnTrash) {

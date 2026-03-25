@@ -126,6 +126,8 @@ const WF_SYSTEM_FIELDS = new Set([
   "ngay_cong_bo",
   "nguoi_cong_bo",
   "ly_do_tu_choi",
+  "ly_do",
+  "image_url",
 ]);
 const LAYER_META = Object.fromEntries(
   Object.entries(window.LAYER_META_SHARED || {}).map(([typeName, meta]) => [

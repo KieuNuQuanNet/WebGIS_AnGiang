@@ -26,7 +26,8 @@ function thucThiTimKiem() {
   if (!queryRaw) return;
 
   const queryNorm = boDauVaThuong(queryRaw);
-  const queryNormEscaped = queryNorm.replace(/'/g, "''");
+  const queryLower = String(queryRaw).toLowerCase().trim();
+  const queryLowerEscaped = queryLower.replace(/'/g, "''");
 
   const MAX_PER_LAYER = 10;
   const cacLopCanTim = [
@@ -109,7 +110,7 @@ function thucThiTimKiem() {
 
     if (!lopTheoLoai.length) {
       const filter = cfg.cols
-        .map((c) => `strToLowerCase(${c}) LIKE '%${queryNormEscaped}%'`)
+        .map((c) => `strToLowerCase(${c}) LIKE '%${queryLowerEscaped}%'`)
         .join(" OR ");
 
       url += `&cql_filter=${encodeURIComponent(filter)}`;

@@ -635,6 +635,69 @@ function renderDanhSachAnhTaiNguyen(
       `;
     })
     .join("");
+
+  container.querySelectorAll(".resource-image-item img").forEach((imgEl, idx) => {
+    imgEl.style.cursor = "zoom-in";
+    imgEl.onclick = () => {
+      const img = images[idx];
+      if (!img) return;
+      moXemAnhTaiNguyen({
+        src: `${API_BASE}${img.duong_dan_file}`,
+        caption: img.chu_thich || img.ten_file || "Ảnh tài nguyên",
+      });
+    };
+  });
+}
+
+function damBaoModalXemAnhTaiNguyen() {
+  let modal = document.getElementById("resourceImagePreviewModal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "resourceImagePreviewModal";
+  modal.className = "resource-image-preview-modal hidden";
+  modal.innerHTML = `
+    <div class="resource-image-preview-card">
+      <button
+        type="button"
+        class="btn-image-preview-close"
+        aria-label="Đóng xem ảnh"
+      >
+        ×
+      </button>
+      <div class="resource-image-preview-stage">
+        <img id="resourceImagePreviewImg" alt="Xem ảnh tài nguyên" />
+      </div>
+      <div id="resourceImagePreviewCaption" class="resource-image-preview-caption"></div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.add("hidden");
+  });
+
+  modal
+    .querySelector(".btn-image-preview-close")
+    ?.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+
+  return modal;
+}
+
+function moXemAnhTaiNguyen({ src = "", caption = "" } = {}) {
+  if (!src) return;
+
+  const modal = damBaoModalXemAnhTaiNguyen();
+  const imgEl = modal.querySelector("#resourceImagePreviewImg");
+  const captionEl = modal.querySelector("#resourceImagePreviewCaption");
+
+  if (imgEl) imgEl.src = src;
+  if (captionEl) captionEl.textContent = caption || "Ảnh tài nguyên";
+
+  modal.classList.remove("hidden");
 }
 
 function damBaoModalAnhTaiNguyen() {

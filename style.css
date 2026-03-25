@@ -445,6 +445,7 @@ body {
   height: 110px;
   object-fit: cover;
   background: #eef2f7;
+  cursor: zoom-in;
 }
 
 .resource-image-meta {
@@ -1442,6 +1443,65 @@ body {
 .resource-image-upload {
   padding-top: 14px;
   border-top: 1px dashed #d1d5db;
+}
+
+.resource-image-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 5100;
+  background: rgba(15, 23, 42, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.resource-image-preview-card {
+  position: relative;
+  width: min(960px, 94vw);
+  max-height: 92vh;
+  padding: 18px;
+  border-radius: 18px;
+  background: #0f172a;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.btn-image-preview-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.resource-image-preview-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.resource-image-preview-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: 72vh;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.resource-image-preview-caption {
+  margin-top: 12px;
+  color: #e5e7eb;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 @media (max-width: 640px) {

@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 // quản lý người dùng api
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const api = apiJSON;
 
 // quản lý người dùng hiển thị
@@ -48,10 +45,7 @@ const state = {
   total: 0,
 };
 
-<<<<<<< HEAD
 // quản lý người dùng nạp dữ liệu
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 async function loadData() {
   const msg = document.getElementById("msg");
   if (msg) {
@@ -62,16 +56,10 @@ async function loadData() {
   try {
     const allRoles = await api("/api/admin/roles");
 
-<<<<<<< HEAD
     rolesMaster = allRoles.filter((r) =>
       ["guest", "nguoi_dung", "can_bo", "admin"].includes(r.ma),
     );
 
-=======
-    rolesMaster = allRoles.filter(
-      (r) => r.ma !== "nguoi_dung" && r.ma !== "khach" && r.ma !== "user",
-    );
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     const usersAll = await api("/api/admin/users");
 
     state.total = usersAll.length;
@@ -112,7 +100,7 @@ function renderTable(users) {
   tbody.innerHTML = "";
 
   users.forEach((u, idx) => {
-    const roleValue = u.roles && u.roles.length ? u.roles[0] : "can_bo";
+    const roleValue = u.roles && u.roles.length ? u.roles[0] : "guest";
 
     const roleOptions = rolesMaster
       .map(
@@ -180,18 +168,11 @@ function renderTable(users) {
 
       btn.disabled = true;
       try {
-        // Đổi thành đường dẫn đúng:
         await api(`/api/admin/users/${id}`, { method: "DELETE" });
         await loadData();
-<<<<<<< HEAD
         showToast("Đã xóa tài khoản thành công!");
       } catch (e) {
         showToast("Lỗi: " + e.message, "error");
-=======
-        showToast("✅ Đã xóa tài khoản thành công!");
-      } catch (e) {
-        showToast("❌ Lỗi: " + e.message, "error");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       } finally {
         btn.disabled = false;
       }

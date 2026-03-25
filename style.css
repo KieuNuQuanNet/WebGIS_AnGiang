@@ -19,10 +19,7 @@ body {
   --color-sinhvat-dong: #e65100;
   --color-sinhvat-thuc: #33691e;
 }
-<<<<<<< HEAD
 /* navbar tìm kiếm */
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .navbar {
   height: var(--nav-h);
   background-color: #2e7d32;
@@ -333,14 +330,6 @@ body {
   background-color: #e8f8f5;
   color: #27ae60;
 }
-<<<<<<< HEAD
-=======
-/* =========================================
-   GIAO DIỆN FORM NHẬP LIỆU WFS-T TRÊN BẢN ĐỒ
-   ========================================= */
-
-/* 👉 THẦN CHÚ: Phá vỡ bức tường giới hạn chiều cao của Leaflet để hiện Full Form */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .leaflet-popup-content-wrapper {
   max-width: min(340px, calc(100vw - 24px)) !important;
 }
@@ -348,16 +337,7 @@ body {
 .leaflet-popup-content {
   width: auto !important;
   max-width: min(340px, calc(100vw - 24px)) !important;
-<<<<<<< HEAD
   margin: 10px 12px !important;
-=======
-  margin: 10px 12px !important; /* đỡ sát mép */
-}
-
-/* Form trong popup cũng co theo màn */
-.wfs-form-container {
-  width: min(320px, calc(100vw - 56px));
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 }
 
 .wfs-form-container {
@@ -838,17 +818,7 @@ body {
 .btn-report-action:hover {
   background-color: #b71c1c;
 }
-<<<<<<< HEAD
 
-=======
-/* Giao diện trên điện thoại*/
-/* =========================
-   MOBILE LAYOUT FIX (<=768px)
-   - Giữ navbar 1 hàng
-   - Map nằm dưới navbar (không chồng)
-   - Dời toolbar xuống dưới
-   ========================= */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .mobile-menu-btn {
   display: none;
   margin-left: 10px;
@@ -871,30 +841,17 @@ body {
 
 .mobile-menu-panel {
   position: absolute;
-<<<<<<< HEAD
   top: 70px;
   right: 10px;
 
   width: min(300px, 88vw);
   max-height: 70vh;
-=======
-  top: 70px; /* ✅ nằm dưới navbar (60px) + khoảng hở */
-  right: 10px;
-
-  width: min(300px, 88vw); /* ✅ nhỏ hơn */
-  max-height: 70vh; /* ✅ không chiếm hết chiều cao */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-<<<<<<< HEAD
   overflow: hidden;
   transform: none;
-=======
-  overflow: hidden; /* giữ */
-  transform: none; /* ✅ bỏ translateY để khỏi “đẩy” lung tung */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 }
 
 .mobile-menu-header {
@@ -941,13 +898,8 @@ body {
   border: 1px solid #eee;
   background: #fff;
   border-radius: 12px;
-<<<<<<< HEAD
   padding: 10px 10px;
   font-size: 14px;
-=======
-  padding: 10px 10px; /* ✅ nhỏ hơn */
-  font-size: 14px; /* ✅ nhỏ hơn */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   cursor: pointer;
 }
 
@@ -968,31 +920,17 @@ body {
   margin: 6px 0;
 }
 
-<<<<<<< HEAD
 @media (max-width: 768px) {
-=======
-/* ✅ MOBILE RULES */
-@media (max-width: 768px) {
-  /* show hamburger */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .mobile-menu-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
 
-<<<<<<< HEAD
-=======
-  /* ❗ẩn cụm nút bên trái để khỏi rối — thay bằng menu */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .toolbar-container {
     display: none !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* navbar đừng bị wrap */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar {
     flex-wrap: nowrap;
   }
@@ -1006,19 +944,11 @@ body {
     max-width: 170px;
   }
 
-<<<<<<< HEAD
-=======
-  /* ẩn bớt link trên navbar (đưa vào menu) */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   #navUser,
   #navAdminUsers {
     display: none !important;
   }
 }
-<<<<<<< HEAD
-=======
-/* ===== Mobile navbar tidy: chỉ giữ logo + nút 🔍 + ☰ ===== */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .mobile-search-btn {
   display: none;
   margin-left: 8px;
@@ -1032,31 +962,17 @@ body {
   cursor: pointer;
 }
 
-<<<<<<< HEAD
 @media (max-width: 768px) {
-=======
-/* mobile search popup dùng lại .navbar-search hiện có */
-@media (max-width: 768px) {
-  /* navbar không wrap */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar {
     flex-wrap: nowrap;
   }
 
-<<<<<<< HEAD
-=======
-  /* Ẩn chữ rối trên mobile (đưa vào menu ☰) */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   #navUser,
   #navAdminUsers,
   #navAuth {
     display: none !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* hiển thị 2 nút */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .mobile-search-btn {
     display: inline-flex;
     align-items: center;
@@ -1068,20 +984,12 @@ body {
     justify-content: center;
   }
 
-<<<<<<< HEAD
-=======
-  /* Ẩn ô search mặc định để navbar gọn */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar-search {
     display: none !important;
   }
   :root {
     --nav-h: 56px;
   }
-<<<<<<< HEAD
-=======
-  /* Khi mở search -> hiện dạng popup dưới navbar */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar-search.is-open {
     display: flex !important;
     position: fixed;
@@ -1095,10 +1003,6 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   }
 
-<<<<<<< HEAD
-=======
-  /* Input co tốt */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar-search .search-group {
     width: 100%;
     max-width: none;
@@ -1108,10 +1012,6 @@ body {
     font-size: 14px;
   }
 
-<<<<<<< HEAD
-=======
-  /* map nằm dưới navbar */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   #map {
     position: fixed;
     top: var(--nav-h);
@@ -1122,24 +1022,13 @@ body {
   }
 }
 
-<<<<<<< HEAD
 @media (max-width: 768px) {
-=======
-/* === Mobile UX overrides (menu drawer) === */
-@media (max-width: 768px) {
-  /* Hide desktop auth links to avoid overlap; actions live in ☰ menu */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   #navUser,
   #navAuth,
   #navAdminUsers {
     display: none !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* IMPORTANT: keep toolbar container in DOM so panels can open from the mobile menu.
-     Only hide the square buttons. */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .toolbar-container {
     display: block !important;
   }
@@ -1147,10 +1036,6 @@ body {
     display: none !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* Search: hidden by default, open when JS adds .is-open */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .navbar-search {
     display: none !important;
   }
@@ -1163,63 +1048,34 @@ body {
     z-index: 20050;
   }
 }
-<<<<<<< HEAD
 
 @media (max-width: 768px) {
-=======
-/* =========================
-   MOBILE FINAL OVERRIDES
-   (đặt CUỐI file để chắc chắn ăn)
-   ========================= */
-@media (max-width: 768px) {
-  /* Chặn kéo ngang */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   html,
   body {
     max-width: 100vw !important;
     overflow-x: hidden !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* Các panel nổi phải co theo màn */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .query-panel {
     position: fixed !important;
     left: 10px !important;
     right: 10px !important;
-<<<<<<< HEAD
     top: 70px !important;
-=======
-    top: 70px !important; /* sẽ chỉnh theo navbar bên dưới */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     width: auto !important;
     max-height: calc(100dvh - 90px) !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* Riêng thống kê (panelThongKe) nếu đang bị inline style width/left */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   #panelThongKe {
     width: auto !important;
     left: 10px !important;
     right: 10px !important;
   }
 
-<<<<<<< HEAD
-=======
-  /* Popup Leaflet không vượt màn */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   .leaflet-popup-content-wrapper,
   .leaflet-popup-content {
     max-width: calc(100vw - 24px) !important;
   }
 }
-<<<<<<< HEAD
-=======
-/* style.css */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .stat-title {
   color: #673ab7;
 }
@@ -1237,10 +1093,6 @@ body {
   font-weight: bold;
 }
 
-<<<<<<< HEAD
-=======
-/* Các item kết quả tìm kiếm/truy vấn trong script.js & search-handler.js */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .res-item-container {
   display: flex;
   align-items: flex-start;
@@ -1280,7 +1132,6 @@ body {
   color: var(--color-rung);
   border-color: var(--color-rung);
 }
-<<<<<<< HEAD
 .wfs-form-header.dongvat {
   color: var(--color-sinhvat-dong);
   border-color: var(--color-sinhvat-dong);
@@ -1298,11 +1149,6 @@ body {
 .wfs-btn-save.thucvat {
   background-color: var(--color-sinhvat-thuc);
 }
-=======
-.wfs-btn-save.rung {
-  background-color: var(--color-rung);
-}
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .wfs-btn-save.nuoc {
   background-color: var(--color-nuoc);
 }
@@ -1326,7 +1172,6 @@ body {
   background: #bbdefb !important;
   color: #0d47a1 !important;
 }
-<<<<<<< HEAD
 .ui-icon {
   display: block;
   object-fit: contain;
@@ -1616,5 +1461,3 @@ body {
     font-size: 20px;
   }
 }
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091

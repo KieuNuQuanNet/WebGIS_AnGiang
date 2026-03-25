@@ -1,37 +1,15 @@
-<<<<<<< HEAD
-=======
-// js/map-init.js
-// =====================================================================
-// PHẦN 1: KHAI BÁO CÁC LỚP BẢN ĐỒ NỀN (BASEMAPS)
-// =====================================================================
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 var osmLayer = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" },
 );
 
 var googleSatLayer = L.tileLayer(
-<<<<<<< HEAD
   "https://mt0.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}",
   { maxZoom: 20, attribution: "&copy; Google Maps" },
 );
 
 var urlWMS = "/myproxy/angiang/wms";
 
-=======
-  "http://mt0.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}",
-  { maxZoom: 20, attribution: "&copy; Google Maps" },
-);
-
-// =====================================================================
-// PHẦN 2: KHAI BÁO LỚP DỮ LIỆU WMS TỪ MÁY CHỦ VPS
-// =====================================================================
-
-var urlWMS = "/myproxy/angiang/wms";
-
-// ✅ CHỈ HIỂN THỊ DỮ LIỆU ĐÃ CÔNG BỐ
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const CQL_CONG_BO = "trang_thai_du_lieu='cong_bo'";
 
 AppGIS.layers.rung = L.tileLayer.wms(urlWMS, {
@@ -82,13 +60,6 @@ AppGIS.layers.thucvat = L.tileLayer.wms(urlWMS, {
   CQL_FILTER: CQL_CONG_BO,
 });
 
-<<<<<<< HEAD
-=======
-// =====================================================================
-// PHẦN 3: KHỞI TẠO BẢN ĐỒ VÀ THIẾT LẬP GÓC NHÌN
-// =====================================================================
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 AppGIS.map = L.map("map", {
   center: [10.3711, 105.4328],
   zoom: 11,
@@ -102,10 +73,7 @@ marker
   )
   .openPopup();
 
-<<<<<<< HEAD
 // điều khiển lớp và lọc
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 var CustomLayerControl = L.Control.extend({
   options: { position: "topright" },
 
@@ -133,11 +101,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkRung"> <span> Tài nguyên Rừng</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrRung" data-box-id="filRung" data-arrow-id="arrRung">V</span>
-=======
-              <span class="toggle-arrow" id="arrRung" onclick="toggleBoLoc('filRung', 'arrRung')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filRung">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-rung" value="Rừng phòng hộ"> Rừng phòng hộ</label></div>
@@ -149,11 +113,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkDat"> <span> Tài nguyên Đất</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrDat" data-box-id="filDat" data-arrow-id="arrDat">V</span>
-=======
-              <span class="toggle-arrow" id="arrDat" onclick="toggleBoLoc('filDat', 'arrDat')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filDat">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-dat" value="Đất chuyên trồng lúa nước"> Đất trồng lúa nước</label></div>
@@ -170,11 +130,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkNuoc"> <span> Tài nguyên Nước</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrNuoc" data-box-id="filNuoc" data-arrow-id="arrNuoc">V</span>
-=======
-              <span class="toggle-arrow" id="arrNuoc" onclick="toggleBoLoc('filNuoc', 'arrNuoc')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filNuoc">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-nuoc" value="sông"> Sông</label></div>
@@ -186,11 +142,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkKhoangSan"> <span> Mỏ Khoáng Sản</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrKhoangSan" data-box-id="filKhoangSan" data-arrow-id="arrKhoangSan">V</span>
-=======
-              <span class="toggle-arrow" id="arrKhoangSan" onclick="toggleBoLoc('filKhoangSan', 'arrKhoangSan')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filKhoangSan">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-khoangsan" value="Đá xây dựng"> Đá xây dựng</label></div>
@@ -207,11 +159,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkDongVat"> <span> Động vật hoang dã</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrDongVat" data-box-id="filDongVat" data-arrow-id="arrDongVat">V</span>
-=======
-              <span class="toggle-arrow" id="arrDongVat" onclick="toggleBoLoc('filDongVat', 'arrDongVat')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filDongVat">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-dongvat" value="Bình thường"> Bình thường</label></div>
@@ -225,11 +173,7 @@ var CustomLayerControl = L.Control.extend({
           <div class="lop-ban-do">
             <div class="layer-main-row">
               <label><input type="checkbox" id="chkThucVat"> <span> Thực vật quý hiếm</span></label>
-<<<<<<< HEAD
               <span class="toggle-arrow" id="arrThucVat" data-box-id="filThucVat" data-arrow-id="arrThucVat">V</span>
-=======
-              <span class="toggle-arrow" id="arrThucVat" onclick="toggleBoLoc('filThucVat', 'arrThucVat')">V</span>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
             </div>
             <div class="layer-filter-row hidden" id="filThucVat">
               <div class="lop-thuoc-tinh"><label><input type="checkbox" class="sub-thucvat" value="Bình thường"> Bình thường</label></div>
@@ -244,7 +188,6 @@ var CustomLayerControl = L.Control.extend({
       </form>
     `;
 
-<<<<<<< HEAD
     container.querySelectorAll(".toggle-arrow").forEach((arrow) => {
       arrow.addEventListener("click", () => {
         toggleBoLoc(
@@ -254,8 +197,6 @@ var CustomLayerControl = L.Control.extend({
       });
     });
 
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     container.addEventListener("mouseenter", function () {
       container.classList.add("leaflet-control-layers-expanded");
     });
@@ -269,10 +210,7 @@ var CustomLayerControl = L.Control.extend({
 
 AppGIS.map.addControl(new CustomLayerControl());
 
-<<<<<<< HEAD
 // chuyển đổi bản đồ nền
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 document.querySelectorAll('input[name="basemap"]').forEach((radio) => {
   radio.addEventListener("change", function () {
     if (this.value === "osm") {
@@ -285,15 +223,8 @@ document.querySelectorAll('input[name="basemap"]').forEach((radio) => {
   });
 });
 
-<<<<<<< HEAD
 // bật/tắt bộ lọc
 function toggleBoLoc(boxId, arrowId) {
   document.getElementById(boxId).classList.toggle("hidden");
   document.getElementById(arrowId).classList.toggle("open");
 }
-=======
-window.toggleBoLoc = function (boxId, arrowId) {
-  document.getElementById(boxId).classList.toggle("hidden");
-  document.getElementById(arrowId).classList.toggle("open");
-};
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091

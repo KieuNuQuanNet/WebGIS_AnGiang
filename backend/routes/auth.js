@@ -1,21 +1,8 @@
-<<<<<<< HEAD
-// Auth route - import va cau hinh
-=======
-const {
-  loginLimiter,
-  forgotPasswordLimiter,
-  registerLimiter,
-} = require("../middleware/rate-limiter");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-<<<<<<< HEAD
-=======
-const dns = require("dns").promises;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const nodemailer = require("nodemailer");
 const { pool } = require("../db");
 const config = require("../config");
@@ -32,31 +19,11 @@ const mailer = SMTP_ENABLED
     })
   : null;
 
-<<<<<<< HEAD
-// Auth route - helper dung chung
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function normalizeEmail(email) {
   return String(email || "")
     .trim()
     .toLowerCase();
 }
-<<<<<<< HEAD
-=======
-function isValidEmailFormat(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-async function hasMxBestEffort(email) {
-  const domain = String(email).split("@")[1] || "";
-  if (!domain) return false;
-  try {
-    const mx = await dns.resolveMx(domain);
-    return Array.isArray(mx) && mx.length > 0;
-  } catch (e) {
-    return null;
-  }
-}
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 async function sendVerifyEmail(toEmail, token) {
   const verifyLink = `${APP_PUBLIC_URL}/login.html?verify=${encodeURIComponent(token)}`;
   await mailer.sendMail({
@@ -67,32 +34,6 @@ async function sendVerifyEmail(toEmail, token) {
        <a href="${verifyLink}">${verifyLink}</a></p>`,
   });
 }
-<<<<<<< HEAD
-=======
-async function logLoginAttempt({
-  req,
-  userId = null,
-  email = null,
-  success,
-  reason = null,
-}) {
-  try {
-    const ua = (req.headers["user-agent"] || "").toString().slice(0, 500);
-    const ip = (req.headers["x-forwarded-for"] || req.ip || "")
-      .toString()
-      .split(",")[0]
-      .trim()
-      .slice(0, 80);
-    await pool.query(
-      `INSERT INTO public.lich_su_dang_nhap (tai_khoan_id, email,
-       thanh_cong, ly_do, ip, user_agent) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [userId, email, !!success, reason, ip, ua],
-    );
-  } catch (e) {
-    console.error(e.message);
-  }
-}
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 async function getUserRolesPermsByEmail(email) {
   const sql = `SELECT tk.*, COALESCE(array_agg(DISTINCT vt.ma) FILTER (WHERE vt.ma IS   
        NOT NULL), '{}') AS roles, COALESCE(array_agg(DISTINCT q.ma) FILTER (WHERE q.ma IS NOT NULL), '{}') AS permissions FROM
@@ -115,15 +56,9 @@ function signToken(user) {
   );
 }
 
-<<<<<<< HEAD
-// Auth route - dang ky va xac nhan email
 router.post("/register", async (req, res) => {
   const client = await pool.connect();
-=======
-router.post("/register", registerLimiter, async (req, res) => {
-  const client = await pool.connect();
   let emailSent = false;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   try {
     const { ho_ten, email, mat_khau } = req.body || {};
     const em = normalizeEmail(email);
@@ -165,22 +100,15 @@ router.post("/register", registerLimiter, async (req, res) => {
     await client.query("COMMIT");
     try {
       await sendVerifyEmail(em, token);
-<<<<<<< HEAD
-=======
       emailSent = true;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     } catch (e) {
       console.error("Mail error:", e.message);
     }
     return res.json({
       ok: true,
-<<<<<<< HEAD
-      message: "Đăng ký thành công. Check mail nhé.",
-=======
       message: emailSent
         ? "Đăng ký thành công. Check mail nhé."
         : "Tài khoản đã tạo nhưng gửi mail lỗi.",
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     });
   } catch (e) {
     await client.query("ROLLBACK");
@@ -205,8 +133,6 @@ router.get("/xac-nhan-email", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Auth route - dang nhap
 router.post("/login", async (req, res) => {
   const { username, password } = req.body || {};
   const em = normalizeEmail(username);
@@ -218,36 +144,12 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Sai tài khoản/mật khẩu" });
     }
 
-=======
-router.post("/login", loginLimiter, async (req, res) => {
-  const { username, password } = req.body || {};
-  try {
-    const user = await getUserRolesPermsByEmail(username);
-
-    // 1. Kiểm tra tài khoản và mật khẩu
-    if (!user || !(await bcrypt.compare(password, user.mat_khau_hash || ""))) {
-      await logLoginAttempt({
-        req,
-        email: username,
-        success: false,
-        reason: "fail",
-      });
-      return res.status(401).json({ message: "Sai tài khoản/mật khẩu" });
-    }
-
-    // 2. Kiểm tra xác nhận email
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     if (!user.email_da_xac_nhan) {
       return res
         .status(403)
         .json({ message: "Vui lòng xác nhận email trước khi đăng nhập!" });
     }
 
-<<<<<<< HEAD
-=======
-    // --- BỔ SUNG ĐOẠN NÀY ĐỂ SỬA LỖI CỦA BẠN ---
-    // 3. Kiểm tra trạng thái phê duyệt từ Admin
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     if (user.trang_thai === "cho_duyet") {
       return res.status(403).json({
         message:
@@ -260,22 +162,8 @@ router.post("/login", loginLimiter, async (req, res) => {
         message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!",
       });
     }
-<<<<<<< HEAD
 
     const token = signToken(user);
-=======
-    // ------------------------------------------
-
-    // Nếu mọi thứ ok mới cấp Token
-    const token = signToken(user);
-    await logLoginAttempt({
-      req,
-      userId: user.id,
-      email: user.email,
-      success: true,
-    });
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return res.json({
       ok: true,
       token,
@@ -288,10 +176,6 @@ router.post("/login", loginLimiter, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Auth route - quen mat khau va dat lai mat khau
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 async function sendResetPasswordEmail(toEmail, token) {
   const resetLink = `${APP_PUBLIC_URL}/login.html?reset=${encodeURIComponent(token)}`;
   await mailer.sendMail({
@@ -301,11 +185,7 @@ async function sendResetPasswordEmail(toEmail, token) {
   });
 }
 
-<<<<<<< HEAD
 router.post("/forgot-password", async (req, res) => {
-=======
-router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   const client = await pool.connect();
   try {
     const em = normalizeEmail(req.body?.email);
@@ -348,19 +228,12 @@ router.post("/reset-password", async (req, res) => {
   const client = await pool.connect();
   try {
     const { token, email, new_password } = req.body || {};
-<<<<<<< HEAD
     const em = normalizeEmail(email);
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     await client.query("BEGIN");
     const { rows } = await client.query(
       "SELECT tq.id, tk.id as user_id FROM public.token_quen_mat_khau tq JOIN public.tai_khoan tk ON tk.id = tq.tai_khoan_id WHERE tk.email=$1 AND tq.token_ma_hoa=$2 AND tq.da_su_dung_luc IS NULL AND tq.het_han_luc > now()",
-<<<<<<< HEAD
       [em, tokenHash],
-=======
-      [email, tokenHash],
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     );
     if (!rows[0]) {
       await client.query("ROLLBACK");
@@ -385,40 +258,12 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Auth route - dang xuat
 router.post("/logout", async (req, res) => {
   try {
     return res.json({ ok: true, message: "Dang xuat thanh cong" });
   } catch (e) {
     console.error("LOGOUT_ERROR:", e);
     return res.status(500).json({ message: "Loi dang xuat" });
-=======
-router.post("/logout", async (req, res) => {
-  try {
-    const h = req.headers.authorization || "";
-    const token = h.startsWith("Bearer ") ? h.slice(7) : null;
-    if (!token) return res.json({ ok: true });
-
-    // 1. Giải mã để lấy thời gian hết hạn của Token
-    const decoded = jwt.decode(token);
-    if (!decoded || !decoded.exp) return res.json({ ok: true });
-
-    // 2. Hash token để lưu cho an toàn và tiết kiệm
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const expDate = new Date(decoded.exp * 1000);
-
-    // 3. Lưu vào danh sách đen
-    await pool.query(
-      "INSERT INTO public.token_blacklist (token_hash, het_han_luc) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-      [tokenHash, expDate],
-    );
-
-    return res.json({ ok: true, message: "Đăng xuất thành công" });
-  } catch (e) {
-    console.error("LOGOUT_ERROR:", e);
-    return res.status(500).json({ message: "Lỗi đăng xuất" });
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   }
 });
 module.exports = router;

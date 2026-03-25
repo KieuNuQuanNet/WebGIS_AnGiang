@@ -1,15 +1,6 @@
-<<<<<<< HEAD
 // kết quả và panel truy vấn
 AppGIS.resultLayer = new L.FeatureGroup().addTo(AppGIS.map);
 
-=======
-// =========================================================
-// 7. LOGIC TRUY VẤN NÂNG CAO (GIAO TIẾP VỚI GEOSERVER)
-// =========================================================
-AppGIS.resultLayer = new L.FeatureGroup().addTo(AppGIS.map);
-
-// 1. Quản lý bảng Truy vấn
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const bangTruyVan = document.getElementById("bangTruyVan");
 const btnDongTruyVan = document.getElementById("btnDongTruyVan");
 
@@ -21,10 +12,6 @@ if (window.L && bangTruyVan) {
 btnDongTruyVan.addEventListener("click", () => {
   bangTruyVan.classList.add("hidden");
 
-<<<<<<< HEAD
-=======
-  // 2. QUAN TRỌNG: Quét sạch các vùng/điểm kết quả trên bản đồ
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   AppGIS.resultLayer.clearLayers();
 
   const lstKetQua = document.getElementById("lstKetQua");
@@ -142,14 +129,7 @@ function capNhatOChonTinhTrang() {
   }
 }
 cboLopDuLieu.addEventListener("change", capNhatOChonTinhTrang);
-<<<<<<< HEAD
 capNhatOChonTinhTrang();
-=======
-capNhatOChonTinhTrang(); // Chạy lần đầu
-
-// --- LỆNH TRUY VẤN LÊN MÁY CHỦ ---
-// --- LỆNH TRUY VẤN LÊN MÁY CHỦ (DÒNG 144) ---
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const btnApDung = document.getElementById("btnApDung");
 
 // lọc và gọi wfs
@@ -165,11 +145,7 @@ btnApDung?.addEventListener("click", (e) => {
   const tuKhoaRaw = document.getElementById("txtTuKhoa").value.trim();
   const tuKhoa = tuKhoaRaw.replace(/'/g, "''");
 
-<<<<<<< HEAD
   let cqlArray = [];
-=======
-  let cqlArray = [CQL_CONG_BO];
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   const cauHinhDong = CAU_HINH_LOC_DONG[chonLop];
 
   if (chonTinhTrang !== "all" && cauHinhDong) {
@@ -182,7 +158,6 @@ btnApDung?.addEventListener("click", (e) => {
     else if (chonLop === "angiang:dongvat" || chonLop === "angiang:thucvat")
       col = "ten_loai";
 
-<<<<<<< HEAD
     cqlArray.push(`strToLowerCase(${col}) LIKE '%${tuKhoa.toLowerCase()}%'`);
   }
 
@@ -192,18 +167,6 @@ btnApDung?.addEventListener("click", (e) => {
       : "";
 
   const API_BASE = window.WEBGIS_API_BASE || "";
-=======
-    // Dùng LIKE + strToLowerCase để an toàn tuyệt đối, không lo lỗi mạng
-    cqlArray.push(`strToLowerCase(${col}) LIKE '%${tuKhoa.toLowerCase()}%'`);
-  }
-
-  const cqlString = `&CQL_FILTER=${encodeURIComponent(cqlArray.join(" AND "))}`;
-
-  // CHUYỂN VỀ VERSION 1.0.0 ĐỂ ĐỒNG BỘ VỚI TÌM KIẾM
-  const urlWFSQuery =
-    `/myproxy/angiang/ows?service=WFS&version=1.0.0&request=GetFeature` +
-    `&typeName=${chonLop}&outputFormat=application/json${cqlString}`;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
   const urlWFSQuery =
     `${API_BASE}/api/wfs?typeName=${encodeURIComponent(chonLop)}` +
@@ -233,11 +196,7 @@ btnApDung?.addEventListener("click", (e) => {
     });
 });
 
-<<<<<<< HEAD
 // hiển thị kết quả và danh sách
-=======
-// --- VẼ UI KẾT QUẢ VÀ XỬ LÝ CLICK (GIỐNG HỆT TÌM KIẾM) ---
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function HienThiKetQuaTruyVan(features, lop) {
   const lstKetQua = document.getElementById("lstKetQua");
   document.getElementById("txtCount").innerText = features
@@ -275,7 +234,6 @@ function HienThiKetQuaTruyVan(features, lop) {
     let div = document.createElement("div");
     div.className = "result-item";
     div.innerHTML = `
-<<<<<<< HEAD
      <div class="res-item-container">
          <div class="res-info-body">
              <h4 class="res-title">${ten}</h4>
@@ -283,21 +241,10 @@ function HienThiKetQuaTruyVan(features, lop) {
          </div>
      </div>
 `;
-=======
-         <div class="res-item-container">
-             <div class="res-icon-box">${icon}</div>
-             <div class="res-info-body">
-                 <h4 class="res-title">${ten}</h4>
-                <span class="res-badge">${nhanLop}</span>
-            </div>
-        </div>
-    `;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
     let geojsonLayer = L.geoJSON(f);
     AppGIS.resultLayer.addLayer(geojsonLayer);
 
-    // CLICK VÀO KẾT QUẢ: GIỐNG HỆT TÌM KIẾM
     div.addEventListener("click", () => {
       const bounds = geojsonLayer.getBounds();
       const tamDiem = bounds.getCenter();
@@ -313,10 +260,6 @@ function HienThiKetQuaTruyVan(features, lop) {
     lstKetQua.appendChild(div);
   });
 
-<<<<<<< HEAD
-=======
-  // Tự động thu phóng để thấy toàn bộ danh sách kết quả (Dòng 314 cũ)
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   if (AppGIS.resultLayer.getLayers().length > 0) {
     AppGIS.map.flyToBounds(AppGIS.resultLayer.getBounds(), {
       padding: [50, 50],
@@ -360,11 +303,7 @@ function tatTatCaMenuTru(menuGiuLai) {
 
 uiBtnThem?.addEventListener("click", () => {
   if (!hasPerm("feature.insert")) {
-<<<<<<< HEAD
     showToast("Bạn không có quyền Thêm dữ liệu.");
-=======
-    showToast("🔒 Bạn không có quyền Thêm dữ liệu.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return;
   }
 
@@ -383,11 +322,7 @@ uiBtnTruyVan?.addEventListener("click", () => {
 
 uiBtnThongKe?.addEventListener("click", () => {
   if (!hasPerm("stats.view")) {
-<<<<<<< HEAD
     showToast("Bạn không có quyền xem Thống kê.");
-=======
-    showToast("🔒 Bạn không có quyền xem Thống kê.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return;
   }
 
@@ -399,11 +334,7 @@ uiBtnThongKe?.addEventListener("click", () => {
 
 uiBtnDoDat?.addEventListener("click", () => {
   if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
-<<<<<<< HEAD
     showToast("Chức năng đo đạc chỉ dành cho cán bộ và admin.");
-=======
-    showToast("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return;
   }
 
@@ -472,11 +403,7 @@ async function thucThiThongKeLop(lopId, tenLop) {
     veBieuDo(Object.keys(dict), Object.values(dict));
 
     document.getElementById("statSummaryText").innerHTML = `
-<<<<<<< HEAD
         <strong>Báo cáo tự động:</strong><br>
-=======
-        <strong>✅ Báo cáo tự động:</strong><br>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
         Hệ thống đang lưu trữ tổng cộng <b class="text-red text-large">${total}</b> đối tượng thuộc lớp <b>${tenLop}</b>.<br><br>
         <i>Tiêu chí phân loại: ${keyPhanLoai.replace(/_/g, " ").toUpperCase()}.</i>
     `;
@@ -486,11 +413,7 @@ async function thucThiThongKeLop(lopId, tenLop) {
   } catch (err) {
     console.error("Lỗi thống kê:", err);
     loader.innerHTML =
-<<<<<<< HEAD
       "<div class='text-red text-bold'>Lỗi lấy dữ liệu từ GeoServer! Vui lòng bật Live Server.</div>";
-=======
-      "<div class='text-red text-bold'>❌ Lỗi lấy dữ liệu từ GeoServer! Vui lòng bật Live Server.</div>";
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   }
 }
 
@@ -714,11 +637,7 @@ function exportBaoCaoExcelNoiTuyen() {
 document.querySelectorAll(".measure-item").forEach((el) => {
   el.addEventListener("click", function () {
     if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
-<<<<<<< HEAD
       showToast("Chức năng đo đạc chỉ dành cho cán bộ và admin.");
-=======
-      showToast("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       return;
     }
 
@@ -729,54 +648,27 @@ document.querySelectorAll(".measure-item").forEach((el) => {
 
     if (kieuDoDat === "distance") {
       new L.Draw.Polyline(AppGIS.map).enable();
-<<<<<<< HEAD
       showToast("Chọn các điểm để đo khoảng cách (double click để kết thúc).");
     } else {
       new L.Draw.Polygon(AppGIS.map).enable();
       showToast("Vẽ vùng để đo diện tích (double click để kết thúc).");
-=======
-      showToast(
-        "📏 Chọn các điểm để đo khoảng cách (double click để kết thúc).",
-      );
-    } else {
-      new L.Draw.Polygon(AppGIS.map).enable();
-      showToast("📐 Vẽ vùng để đo diện tích (double click để kết thúc).");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     }
   });
 });
 
 document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
   if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
-<<<<<<< HEAD
     showToast("Chức năng đo đạc chỉ dành cho cán bộ và admin.");
-=======
-    showToast("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return;
   }
 
   measureItems.clearLayers();
-<<<<<<< HEAD
   cheDoVe = "";
   AppGIS.map.closePopup();
   document.getElementById("danhSachDoDat")?.classList.add("hidden");
 });
 
 // Menu và tìm kiếm trên điện thoại
-=======
-  AppGIS.map.closePopup();
-  document.getElementById("danhSachDoDat")?.classList.add("hidden");
-});
-// ===============================
-// MOBILE MENU (FIX): menu ☰ chạy được đủ chức năng
-// - Thêm: hiện danh sách resource-item ngay trong menu
-// - Thống kê: hiện danh sách stat-select-item
-// - Đo đạc: hiện distance/area (measure-item)
-// - Truy vấn: mở bangTruyVan
-// - Layers: mở Leaflet layers
-// ===============================
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 (function initMobileMenuFixed() {
   const btnOpen = document.getElementById("btnMobileMenu");
 
@@ -792,10 +684,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     }
   });
 
-<<<<<<< HEAD
-=======
-  // Close search when tapping outside on mobile
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   document.addEventListener("click", (e) => {
     if (!navbarSearchBox || !navbarSearchBox.classList.contains("is-open"))
       return;
@@ -815,10 +703,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
 
   if (!btnOpen || !overlay || !panel || !mainList) return;
 
-<<<<<<< HEAD
-=======
-  // tạo sub container nếu chưa có
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   let sub = document.getElementById("mobileMenuSub");
   if (!sub) {
     sub = document.createElement("div");
@@ -840,11 +724,7 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
       !navUser.classList.contains("hidden") &&
       navUser.textContent.trim()
         ? navUser.textContent.trim()
-<<<<<<< HEAD
         : " Khách";
-=======
-        : "👤 Khách";
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     if (menuUser) menuUser.textContent = userText;
 
     if (authBtn && navAuth) authBtn.textContent = navAuth.textContent;
@@ -859,7 +739,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     const mmAdminUsers =
       document.getElementById("mmAdminUsers") ||
       document.getElementById("mobileMenuAdmin");
-<<<<<<< HEAD
     const mmHistory = document.getElementById("mmHistory");
     const mmLayerManage = document.getElementById("mmLayerManage");
 
@@ -879,48 +758,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
   function openMenu() {
     syncMenu();
     applyMobileMenuPermissions();
-=======
-    const mmLayerManage = document.getElementById("mmLayerManage");
-    const mmReport = document.getElementById("mmReport");
-
-    // helper: show/hide
-    const setShow = (el, ok) => {
-      if (!el) return;
-      if (ok) el.classList.remove("hidden");
-      else el.classList.add("hidden");
-    };
-
-    // Quy ước quyền:
-    // - Admin: roles includes "admin" OR perms includes "admin.users"
-    const roles =
-      typeof getRoles === "function"
-        ? getRoles()
-        : JSON.parse(localStorage.getItem("webgis_roles") || "[]") || [];
-    const admin =
-      Array.isArray(roles) &&
-      roles.map((r) => (r || "").toLowerCase()).includes("admin"); // chỉ role admin mới coi là admin
-
-    const staff =
-      admin ||
-      hasPerm("feature.insert") ||
-      hasPerm("feature.update") ||
-      hasPerm("feature.delete");
-
-    // Bạn muốn cán bộ thấy gì?
-    // Gợi ý:
-    // - Quản lý tài khoản: CHỈ admin
-    setShow(mmAdminUsers, admin);
-
-    // - Quản lý lớp: thường chỉ admin (nếu muốn cán bộ thấy thì đổi staff)
-    setShow(mmLayerManage, admin);
-
-    // - Báo cáo: nếu có quyền riêng "report.view" thì cho, còn không admin mới thấy
-    setShow(mmReport, admin || hasPerm("report.view"));
-  }
-  function openMenu() {
-    syncMenu();
-    applyMobileMenuPermissions(); // ✅ thêm dòng này
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     overlay.classList.remove("hidden");
     overlay.setAttribute("aria-hidden", "false");
     sub.classList.add("hidden");
@@ -933,10 +770,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
   }
 
   function showSubMenu(title, items) {
-<<<<<<< HEAD
-=======
-    // items: [{label, onClick}]
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     sub.innerHTML = `
       <div class="mobile-sub-head">
         <button class="mobile-sub-back" type="button" id="mobileSubBack">←</button>
@@ -965,16 +798,9 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     sub.classList.remove("hidden");
   }
 
-<<<<<<< HEAD
   function actionAdd() {
     if (!hasPerm("feature.insert") && !isAdmin()) {
       showToast("Bạn không có quyền thêm tài nguyên.");
-=======
-  // === Action handlers (KHÔNG phụ thuộc toolbar-container hiển thị) ===
-  function actionAdd() {
-    if (!hasPerm("feature.insert") && !isAdmin()) {
-      showToast("🔒 Bạn không có quyền thêm tài nguyên.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       return;
     }
 
@@ -994,28 +820,17 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     );
 
     showSubMenu(
-<<<<<<< HEAD
       "Thêm tài nguyên",
       els.map((el) => ({
         label: el.textContent.trim(),
         onClick: () => el.click(),
-=======
-      "➕ Thêm tài nguyên",
-      els.map((el) => ({
-        label: el.textContent.trim(),
-        onClick: () => el.click(), // dùng handler có sẵn trong script.js
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       })),
     );
   }
 
   function actionStats() {
     if (!hasPerm("stats.view") && !isAdmin()) {
-<<<<<<< HEAD
       showToast("Bạn không có quyền xem thống kê.");
-=======
-      showToast("🔒 Bạn không có quyền xem thống kê.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       return;
     }
 
@@ -1026,28 +841,17 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     }
 
     showSubMenu(
-<<<<<<< HEAD
       "Thống kê",
       els.map((el) => ({
         label: el.textContent.trim(),
         onClick: () => el.click(),
-=======
-      "📊 Thống kê",
-      els.map((el) => ({
-        label: el.textContent.trim(),
-        onClick: () => el.click(), // handler đã có: mở panelThongKe + gọi thống kê
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       })),
     );
   }
 
   function actionMeasure() {
     if (!hasPerm("feature.insert") && !hasPerm("admin.users")) {
-<<<<<<< HEAD
       showToast("Chức năng đo đạc chỉ dành cho cán bộ và admin.");
-=======
-      showToast("🔒 Chức năng đo đạc chỉ dành cho cán bộ và admin.");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       return;
     }
 
@@ -1055,7 +859,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
     const area = document.querySelector('.measure-item[data-type="area"]');
 
     if (!dist || !area) {
-<<<<<<< HEAD
       showToast(" Không tìm thấy nút đo đạc (.measure-item distance/area).");
       return;
     }
@@ -1065,17 +868,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
       { label: " Đo diện tích", onClick: () => area.click() },
       {
         label: "Xóa kết quả đo",
-=======
-      showToast("❌ Không tìm thấy nút đo đạc (.measure-item distance/area).");
-      return;
-    }
-
-    showSubMenu("📏 Đo đạc", [
-      { label: "📏 Đo khoảng cách", onClick: () => dist.click() },
-      { label: "📐 Đo diện tích", onClick: () => area.click() },
-      {
-        label: "🧹 Xóa kết quả đo",
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
         onClick: () => document.getElementById("btnClearMeasure")?.click(),
       },
     ]);
@@ -1101,18 +893,10 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
   }
   function actionSearch() {
     const box = document.querySelector(".navbar-search");
-<<<<<<< HEAD
     box?.classList.add("is-open");
     document.getElementById("inpSearch")?.focus();
   }
 
-=======
-    box?.classList.add("is-open"); // ✅ bật UI search trên mobile
-    document.getElementById("inpSearch")?.focus();
-  }
-
-  // ==== bind main menu buttons ====
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   btnOpen.addEventListener("click", (e) => {
     e.preventDefault();
     openMenu();
@@ -1129,10 +913,6 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
       closeMenu();
   });
 
-<<<<<<< HEAD
-=======
-  // buttons data-action (main view)
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   mainList.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const action = btn.getAttribute("data-action");
@@ -1154,27 +934,15 @@ document.getElementById("btnClearMeasure")?.addEventListener("click", () => {
         return actionSearch();
       }
 
-<<<<<<< HEAD
-=======
-      // fallback
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       closeMenu();
     });
   });
 
-<<<<<<< HEAD
-=======
-  // auth click (dùng navAuth logic có sẵn)
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   authBtn?.addEventListener("click", () => {
     closeMenu();
     document.getElementById("navAuth")?.click();
   });
 
-<<<<<<< HEAD
-=======
-  // link click -> đóng menu
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   overlay.querySelectorAll("a.mobile-menu-link").forEach((a) => {
     a.addEventListener("click", () => closeMenu());
   });

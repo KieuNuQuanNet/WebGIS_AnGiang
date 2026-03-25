@@ -2,16 +2,10 @@
 const api = apiJSON;
 const state = {
   page: 1,
-<<<<<<< HEAD
   limit: 50,
   total: 0,
 };
 // hỗ trợ hiển thị
-=======
-  limit: 50, // Số bản ghi mỗi trang
-  total: 0,
-};
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function statusBadge(st) {
   const s = String(st || "").toLowerCase();
   const map = {
@@ -61,10 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnReload")?.addEventListener("click", load);
   document.getElementById("q")?.addEventListener("input", debounce(load, 250));
 
-<<<<<<< HEAD
-=======
-  // Thêm dòng này để khi chọn lớp khác thì danh sách tự tải lại
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   document.getElementById("cboLayer")?.addEventListener("change", load);
 
   await load();
@@ -86,29 +76,17 @@ async function load() {
     const layerChon =
       document.getElementById("cboLayer")?.value || "angiang:rung";
 
-<<<<<<< HEAD
-=======
-    // Lấy toàn bộ dữ liệu (hoặc tăng limit lên cao)
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     const allRows = await api(
       `/api/admin/resource-history?layer=${layerChon}&limit=1000&q=${encodeURIComponent(q)}`,
     );
 
     state.total = allRows.length;
 
-<<<<<<< HEAD
-=======
-    // Cắt dữ liệu theo trang
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     const start = (state.page - 1) * state.limit;
     const pageItems = allRows.slice(start, start + state.limit);
 
     pageItems.forEach((r, idx) => {
-<<<<<<< HEAD
       const stt = start + idx + 1;
-=======
-      const stt = start + idx + 1; // STT chạy đúng theo trang
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       const tr = document.createElement("tr");
       tr.innerHTML = `
             <td class="text-center">${stt}</td>
@@ -133,11 +111,7 @@ async function load() {
       limit: state.limit,
       onChange: (p) => {
         state.page = p;
-<<<<<<< HEAD
         load();
-=======
-        load(); // Tải lại trang mới
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       },
     });
     if (!allRows.length) {

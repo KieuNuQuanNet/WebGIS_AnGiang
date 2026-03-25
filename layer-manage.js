@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 // trạng thái
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const api = apiJSON;
 const statusLabel = {
   nhap: "Nhập",
   cho_duyet: "Chờ duyệt",
-<<<<<<< HEAD
   cho_xoa: "Chờ xóa",
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   cong_bo: "Công bố (Hiện bản đồ)",
   da_xoa: "Đã xóa",
 };
@@ -193,7 +187,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       load();
     };
   }
-<<<<<<< HEAD
   const panelNhapFile = document.getElementById("panelNhapFile");
   const btnBulkImport = document.getElementById("btnBulkImport");
   const btnDongNhapFile = document.getElementById("btnDongNhapFile");
@@ -217,8 +210,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
   const btnTrash = document.getElementById("btnTrash");
   if (btnTrash) {
@@ -227,19 +218,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (statusFilter.value === "da_xoa") {
         statusFilter.value = "tat_ca";
         btnTrash.classList.remove("btn-trash-active");
-<<<<<<< HEAD
         btnTrash.innerHTML = "Thùng rác";
       } else {
         statusFilter.value = "da_xoa";
         btnTrash.classList.add("btn-trash-active");
         btnTrash.innerHTML = "Đóng Thùng rác";
-=======
-        btnTrash.innerHTML = "🗑️ Thùng rác";
-      } else {
-        statusFilter.value = "da_xoa";
-        btnTrash.classList.add("btn-trash-active");
-        btnTrash.innerHTML = "📂 Đóng Thùng rác";
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       }
       state.page = 1;
       load();
@@ -266,7 +249,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const statusFilter = document.getElementById("statusFilter");
-<<<<<<< HEAD
   const approvalDetailModal = document.getElementById("approvalDetailModal");
   const btnCloseApprovalDetail = document.getElementById(
     "btnCloseApprovalDetail",
@@ -364,12 +346,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.target === approvalDetailModal) {
         approvalDetailModal.classList.add("hidden");
       }
-=======
-  if (statusFilter) {
-    statusFilter.addEventListener("change", () => {
-      state.page = 1;
-      load();
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     });
   }
 
@@ -418,7 +394,6 @@ async function loadObjects() {
   const qInput = document.getElementById("q");
 
   if (!layerSelect || !statusFilter || !qInput) return;
-<<<<<<< HEAD
 
   const layer = layerSelect.value;
   const status = statusFilter.value;
@@ -486,22 +461,6 @@ async function loadObjects() {
 
     renderTable(pageItems, layer);
   }
-=======
-
-  const layer = layerSelect.value;
-  const status = statusFilter.value;
-  const q = qInput.value.trim();
-
-  const url = `/api/admin/layer-objects?layer=${encodeURIComponent(layer)}&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`;
-
-  const data = await api(url);
-  state.total = data.length;
-
-  const start = (state.page - 1) * state.limit;
-  const pageItems = data.slice(start, start + state.limit);
-
-  renderTable(pageItems, layer);
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
   const pagerDiv = document.getElementById("pager");
   if (pagerDiv) {
@@ -528,10 +487,6 @@ function renderTable(items, layerName) {
     return;
   }
 
-<<<<<<< HEAD
-=======
-  // Lấy trạng thái lọc hiện tại để biết đang ở Thùng rác hay danh sách thường
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   const isTrash = document.getElementById("statusFilter")?.value === "da_xoa";
 
   items.forEach((it, idx) => {
@@ -541,15 +496,8 @@ function renderTable(items, layerName) {
     const stt = (state.page - 1) * state.limit + idx + 1;
     const objId = it.gid || it.id || it.fid || it.objectid;
 
-<<<<<<< HEAD
     const cellClass = isChoDuyet ? "row-pending" : "";
 
-=======
-    // 1. Xác định class cho hàng đang chờ duyệt
-    const cellClass = isChoDuyet ? "row-pending" : "";
-
-    // 2. Tạo logic cho cột TRẠNG THÁI (Select box)
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     const statusOptions = Object.keys(statusLabel)
       .map(
         (k) =>
@@ -557,7 +505,6 @@ function renderTable(items, layerName) {
       )
       .join("");
 
-<<<<<<< HEAD
     let actionButtons = "";
     if (isTrash) {
       actionButtons = `
@@ -574,28 +521,6 @@ function renderTable(items, layerName) {
       actionButtons = `
             <button class="btn btn-small" data-save="${objId}">Lưu</button>
             <button class="btn btn-small btn-ghost" data-approve-delete="${objId}">Xóa</button>
-=======
-    // 3. Tạo logic cho cột HÀNH ĐỘNG
-    let actionButtons = "";
-    if (isTrash) {
-      // Nếu trong thùng rác: Hiện nút Khôi phục và Xóa vĩnh viễn
-      actionButtons = `
-            <button class="btn btn-small btn-success" onclick="adminKhoiPhucTuThungRac('${layerName}', '${objId}')">🔄 Khôi phục</button>   
-            <button class="btn btn-small btn-danger" onclick="adminXoaVinhVienTuThungRac('${layerName}', '${objId}')">💀 Xóa vĩnh
-      viễn</button>
-          `;
-    } else if (isChoXoa) {
-      // Nếu có yêu cầu xóa: Hiện nút Duyệt xóa và Từ chối
-      actionButtons = `
-            <button class="btn btn-small btn-danger" onclick="adminPheDuyetXoa('${layerName}', '${objId}')">✅ Duyệt xóa</button>
-            <button class="btn btn-small btn-ghost" onclick="adminTuChoiXoa('${layerName}', '${objId}')">❌ Từ chối</button>
-          `;
-    } else {
-      // Danh sách bình thường: Hiện nút Lưu trạng thái và Xóa (vào thùng rác)
-      actionButtons = `
-            <button class="btn btn-small" data-save="${objId}">💾 Lưu</button>
-            <button class="btn btn-small btn-ghost" onclick="adminPheDuyetXoa('${layerName}', '${objId}')">🗑️ Xóa</button>
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
           `;
     }
 
@@ -622,7 +547,6 @@ function renderTable(items, layerName) {
     tbody.appendChild(tr);
   });
 
-<<<<<<< HEAD
   tbody.querySelectorAll("button[data-save]").forEach((btn) => {
     btn.onclick = async () => {
       const id = btn.getAttribute("data-save");
@@ -741,33 +665,11 @@ function renderApprovalTable(items, layerName) {
         await openApprovalDetail(item.id);
       } else {
         openPendingNewDetail(item);
-=======
-  // Gán sự kiện cho nút Lưu sau khi render
-  tbody.querySelectorAll("button[data-save]").forEach((btn) => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute("data-save");
-      const sel = tbody.querySelector(`select[data-id="${id}"]`);
-      if (!sel) return;
-      const stage = sel.value;
-      btn.disabled = true;
-      try {
-        await api("/api/admin/layer-objects/stage", {
-          method: "PATCH",
-          body: { layer: layerName, ids: [id], stage },
-        });
-        showToast("Cập nhật trạng thái thành công!");
-        loadObjects();
-      } catch (e) {
-        showToast("Lỗi: " + e.message, "error");
-      } finally {
-        btn.disabled = false;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       }
     };
   });
 }
 
-<<<<<<< HEAD
 // xem chi tiết yêu cầu duyệt
 async function openApprovalDetail(requestId) {
   const modal = document.getElementById("approvalDetailModal");
@@ -854,8 +756,6 @@ function openPendingNewDetail(item) {
   modal.classList.remove("hidden");
 }
 // các thao tác từ quản trị viên
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 window.adminPheDuyetXoa = async (layer, id) => {
   if (
     confirm(
@@ -922,7 +822,6 @@ window.adminKhoiPhucTuThungRac = async (layer, id) => {
   }
 };
 window.adminXoaVinhVienTuThungRac = async (layer, id) => {
-<<<<<<< HEAD
   const confirmed = confirm(
     "CẢNH BÁO: Hành động này sẽ xóa VĨNH VIỄN tài nguyên khỏi hệ thống và không thể khôi phục lại được. Bạn có chắc chắn muốn tiếp tục không?",
   );
@@ -932,21 +831,6 @@ window.adminXoaVinhVienTuThungRac = async (layer, id) => {
   const rawId = String(id || "").trim();
 
   const fid = rawId.includes(".") ? rawId : `${featureTypeName}.${rawId}`;
-=======
-  const confirm1 = confirm(
-    "CẢNH BÁO TỐI CAO: Hành động này sẽ xóa VĨNH VIỄN tài nguyên khỏi hệ thống và không thể khôi phục lại được.",
-  );
-  if (!confirm1) return;
-
-  const confirm2 = confirm(
-    "Bạn có chắc chắn 100% muốn thực hiện việc này không?",
-  );
-  if (!confirm2) return;
-
-  // THAY ĐỔI: Tách lấy tên bảng chuẩn để tạo FeatureId (Fid)
-  const tableName = layer.includes(":") ? layer.split(":")[1] : layer;
-  const fid = `${tableName}.${id}`;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 
   const xml = `
                 <wfs:Transaction service="WFS" version="1.0.0"
@@ -970,16 +854,9 @@ window.adminXoaVinhVienTuThungRac = async (layer, id) => {
       body: xml,
     });
 
-<<<<<<< HEAD
     showToast("Đã xóa vĩnh viễn tài nguyên khỏi hệ thống.");
     load();
   } catch (e) {
     showToast("Lỗi xóa vĩnh viễn: " + e.message, "error");
-=======
-    showToast("✅ Đã xóa vĩnh viễn tài nguyên khỏi hệ thống.");
-    load();
-  } catch (e) {
-    showToast("❌ Lỗi xóa vĩnh viễn: " + e.message, "error");
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   }
 };

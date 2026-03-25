@@ -1,23 +1,13 @@
-<<<<<<< HEAD
-// Auth middleware - xac thuc JWT
-const jwt = require("jsonwebtoken");
-const config = require("../config");
-
-async function authenticateToken(req, res, next) {
-=======
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 const crypto = require("crypto");
 async function authenticateToken(req, res, next) {
   const { pool } = require("../db"); // Thêm import db
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   const h = req.headers.authorization || "";
   const token = h.startsWith("Bearer ") ? h.slice(7) : null;
   if (!token) return res.status(401).json({ message: "Missing token" });
 
   try {
-<<<<<<< HEAD
-=======
     // 1. Kiểm tra Token có nằm trong danh sách đen không
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const { rows } = await pool.query(
@@ -31,7 +21,6 @@ async function authenticateToken(req, res, next) {
     }
 
     // 2. Nếu không nằm trong danh sách đen -> Verify JWT như bình thường
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     req.user = jwt.verify(token, config.JWT_SECRET);
     return next();
   } catch (err) {
@@ -39,8 +28,6 @@ async function authenticateToken(req, res, next) {
   }
 }
 
-<<<<<<< HEAD
-// Auth middleware - kiem tra quyen theo route
 function requirePerm(code) {
   return (req, res, next) => {
     const roles = (req.user?.roles || []).map((r) =>
@@ -58,13 +45,6 @@ function requirePerm(code) {
       return next();
     }
 
-=======
-function requirePerm(code) {
-  return (req, res, next) => {
-    const roles = req.user?.roles || [];
-    const perms = req.user?.permissions || [];
-    if (roles.includes("admin") || perms.includes(code)) return next();
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     return res.status(403).json({ message: "Forbidden" });
   };
 }

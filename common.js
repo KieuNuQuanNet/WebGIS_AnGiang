@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 // lưu trữ đăng nhập và hỗ trợ người dùng
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const WEBGIS_STORAGE_KEYS = [
   "webgis_token",
   "webgis_roles",
@@ -67,11 +64,7 @@ function getPerms() {
 function hasPerm(perm) {
   if (!getToken()) return false;
 
-<<<<<<< HEAD
   // admin cho qua còn lại kiểm tra quyền
-=======
-  // QUAN TRỌNG: Nếu là Admin thì cho qua hết, không cần check mảng permissions
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   if (isAdmin()) return true;
 
   const p = String(perm || "").toLowerCase();
@@ -187,10 +180,7 @@ function debounce(fn, ms) {
   };
 }
 
-<<<<<<< HEAD
 // navbar
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function initAuthNav() {
   const navAuth = document.getElementById("navAuth");
   const navUser = document.getElementById("navUser");
@@ -205,7 +195,6 @@ function initAuthNav() {
     if (logged) {
       navUser.classList.remove("hidden");
       const name = localStorage.getItem("webgis_user") || "User";
-<<<<<<< HEAD
       const roles = getRoles();
       const roleDisp = isAdmin()
         ? "Quản trị viên"
@@ -216,13 +205,6 @@ function initAuthNav() {
             : roles.includes("guest") || roles.includes("khach")
               ? "Khách"
               : "Người dùng";
-=======
-      const roleDisp = isAdmin()
-        ? "Quản trị"
-        : localStorage.getItem("webgis_role") === "can_bo"
-          ? "Cán bộ"
-          : "Người dùng";
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       navUser.textContent = ` ${name} (${roleDisp})`;
     } else {
       navUser.classList.add("hidden");
@@ -237,16 +219,10 @@ function initAuthNav() {
   if (logged) {
     navAuth.textContent = "Đăng xuất";
     navAuth.href = "#";
-    navAuth.onclick = async (e) => {
+    navAuth.onclick = (e) => {
       e.preventDefault();
-      try {
-        await apiJSON("/api/logout", { method: "POST" });
-      } catch (err) {
-        console.warn("Logout server error:", err);
-      } finally {
-        clearAuth();
-        window.location.href = "index.html";
-      }
+      clearAuth();
+      window.location.href = "index.html";
     };
   } else {
     navAuth.textContent = "Đăng nhập";
@@ -255,10 +231,7 @@ function initAuthNav() {
   }
 }
 
-<<<<<<< HEAD
 // ẩn hiển thị theo quyền
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function applyPermUI() {
   document.querySelectorAll("[data-perm]").forEach((el) => {
     const p = el.getAttribute("data-perm");
@@ -324,10 +297,7 @@ function applyPermUI() {
   });
 })();
 
-<<<<<<< HEAD
 // phân trang
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function buildPageList(totalPages, current, maxPages = 100, radius = 2) {
   totalPages = Math.max(1, Number(totalPages || 1));
   current = Math.min(Math.max(1, Number(current || 1)), totalPages);
@@ -402,20 +372,8 @@ function renderPager(
     };
   });
 }
-<<<<<<< HEAD
 // thông báo nhỏ
 function showToast(message, type = "success") {
-=======
-function showToast(message, type = "success") {
-  // Bổ sung định nghĩa các biểu tượng ở đây
-  const icons = {
-    success: "✅",
-    error: "❌",
-    info: "ℹ️",
-    warning: "⚠️",
-  };
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   let container = document.getElementById("toast-container");
   if (!container) {
     container = document.createElement("div");
@@ -426,7 +384,6 @@ function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `webgis-toast ${type}`;
 
-<<<<<<< HEAD
   const icons = {
     success: "OK",
     error: "!",
@@ -436,10 +393,6 @@ function showToast(message, type = "success") {
 
   toast.innerHTML = `<span>${icons[type] || ""}</span> <span>${message}</span>`;
 
-=======
-  // Bây giờ biến icons đã tồn tại, dòng này sẽ chạy bình thường
-  toast.innerHTML = `<span>${icons[type] || ""}</span> <span>${message}</span>`;
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -449,9 +402,5 @@ function showToast(message, type = "success") {
         container.removeChild(toast);
       }
     }, 500);
-<<<<<<< HEAD
   }, 8000);
-=======
-  }, 4000);
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 }

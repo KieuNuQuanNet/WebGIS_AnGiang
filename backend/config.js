@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-// backend/config.js
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 

@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 /*hỗ trợ thêm cho các tiện ích*/
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .hidden {
   display: none !important;
 }
@@ -79,10 +76,7 @@
   pointer-events: none;
 }
 
-<<<<<<< HEAD
 /* popup thông báo*/
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 #toast-container {
   position: fixed;
   top: 20px;
@@ -144,10 +138,7 @@
   transform: translateX(50%);
 }
 
-<<<<<<< HEAD
 /* nút và bảng áp dụng cho các trang quản lý */
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .table-actions .btn {
   display: inline-flex;
   align-items: center;
@@ -168,7 +159,6 @@
   color: white;
 }
 
-<<<<<<< HEAD
 .btn-import {
   background-color: #1e88e5;
   color: white;
@@ -179,8 +169,6 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .btn-trash:hover {
   background-color: #455a64;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -190,31 +178,6 @@
   background-color: #f44336;
 }
 
-<<<<<<< HEAD
-=======
-.w-70 {
-  width: 70px;
-}
-.w-90 {
-  width: 90px;
-}
-.w-130 {
-  width: 130px;
-}
-.w-180 {
-  width: 180px;
-}
-.w-200 {
-  width: 200px;
-}
-.w-220 {
-  width: 220px;
-}
-
-.text-center {
-  text-align: center;
-}
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .text-purple {
   color: #673ab7;
 }
@@ -231,20 +194,12 @@
   max-height: 80vh;
   overflow-y: auto;
 }
-<<<<<<< HEAD
 
-=======
-/* Trạng thái hàng đang chờ duyệt (màu vàng nhạt) */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .row-pending {
   background-color: #fffde7 !important;
   border-left: 4px solid #fbc02d;
 }
 
-<<<<<<< HEAD
-=======
-/* Chữ thông báo trạng thái nhỏ dưới tên tài nguyên */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .status-label-sub {
   font-size: 11px;
   font-weight: bold;
@@ -257,10 +212,6 @@
   color: #f9a825;
 }
 
-<<<<<<< HEAD
-=======
-/* Khung hiển thị lý do xóa (màu cam nhạt) */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .reason-alert-box {
   background: #fff3e0;
   padding: 8px;
@@ -294,11 +245,7 @@
 .btn-danger {
   background-color: #f44336 !important;
 }
-<<<<<<< HEAD
 
-=======
-/* 4. Định dạng màu sắc theo loại tài nguyên (Dùng biến đã có trong style.css) */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .text-rung {
   color: var(--color-rung);
   border-color: var(--color-rung);
@@ -350,10 +297,6 @@
   background-color: #ef6c00 !important;
 }
 
-<<<<<<< HEAD
-=======
-/* Dành cho tiêu đề đo đạc trong wfs-handler.js */
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 .measure-title {
   margin-top: 0;
   color: #2e7d32;
@@ -368,7 +311,6 @@
   font-family: sans-serif;
   font-weight: bold;
 }
-<<<<<<< HEAD
 
 .btn-trash-active {
   background-color: #f44336 !important;
@@ -640,19 +582,3 @@
     width: 100%;
   }
 }
-=======
-/* Dành cho nút Thùng rác trong layer-manage.js */
-     .btn-trash-active { background-color: #f44336 !important; }
-    
-     /* Dành cho khối tóm tắt thống kê trong index.html */
-     .stat-summary-box {
-         margin-top: 15px;
-         padding: 12px;
-         background: #f3e5f5;
-         border-left: 5px solid #673ab7;
-        border-radius: 4px;
-        font-size: 14px;
-        color: #333;
-        line-height: 1.5;
-    }
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091

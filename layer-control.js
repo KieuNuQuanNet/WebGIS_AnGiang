@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 // bộ lọc và truy vấn CQL
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const BASE_CQL_PUBLISHED = "trang_thai_du_lieu='cong_bo'";
 
 function capNhatLopWMS(layerWMS, chkMainId, subClassName, columnName) {
@@ -70,10 +67,7 @@ function kichHoat(chkMainId, subClassName, layerWMS, columnName) {
   capNhatLopWMS(layerWMS, chkMainId, subClassName, columnName);
 }
 
-<<<<<<< HEAD
 // bật/ tắt lớp dữ liệu lớn và dữ liệu lọc nhỏ
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 kichHoat("chkRung", "sub-rung", AppGIS.layers.rung, "loai_rung");
 kichHoat("chkDat", "sub-dat", AppGIS.layers.dat, "loai_dat_su_dung");
 kichHoat("chkNuoc", "sub-nuoc", AppGIS.layers.nuoc, "loai");
@@ -86,10 +80,7 @@ kichHoat(
 kichHoat("chkDongVat", "sub-dongvat", AppGIS.layers.dongvat, "muc_do_nguy_cap");
 kichHoat("chkThucVat", "sub-thucvat", AppGIS.layers.thucvat, "muc_do_nguy_cap");
 
-<<<<<<< HEAD
 //  cấu hình của từng lớp popup, truy vấn và tìm kiếm
-=======
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const TU_DIEN_COT = {
   ten: "Tên tài nguyên",
   ten_don_vi: "Tên mỏ / Đơn vị",
@@ -136,7 +127,6 @@ const WF_SYSTEM_FIELDS = new Set([
   "nguoi_cong_bo",
   "ly_do_tu_choi",
 ]);
-<<<<<<< HEAD
 const LAYER_META = Object.fromEntries(
   Object.entries(window.LAYER_META_SHARED || {}).map(([typeName, meta]) => [
     typeName,
@@ -148,54 +138,6 @@ const LAYER_META = Object.fromEntries(
 );
 
 // các hàm lấy cấu hình lớp và bật lớp khi cần
-=======
-
-const LAYER_META = {
-  "angiang:khoangsan_diem_mo": {
-    tieuDe: "Khoáng sản",
-    layerObj: AppGIS.layers.khoangsan,
-    chkMainId: "chkKhoangSan",
-    subClass: "sub-khoangsan",
-    columnName: "loai_khoang_san",
-  },
-  "angiang:rung": {
-    tieuDe: "Rừng",
-    layerObj: AppGIS.layers.rung,
-    chkMainId: "chkRung",
-    subClass: "sub-rung",
-    columnName: "loai_rung",
-  },
-  "angiang:waterways": {
-    tieuDe: "Nước",
-    layerObj: AppGIS.layers.nuoc,
-    chkMainId: "chkNuoc",
-    subClass: "sub-nuoc",
-    columnName: "loai",
-  },
-  "angiang:dat": {
-    tieuDe: "Đất",
-    layerObj: AppGIS.layers.dat,
-    chkMainId: "chkDat",
-    subClass: "sub-dat",
-    columnName: "loai_dat_su_dung",
-  },
-  "angiang:dongvat": {
-    tieuDe: "Động vật",
-    layerObj: AppGIS.layers.dongvat,
-    chkMainId: "chkDongVat",
-    subClass: "sub-dongvat",
-    columnName: "muc_do_nguy_cap",
-  },
-  "angiang:thucvat": {
-    tieuDe: "Thực vật",
-    layerObj: AppGIS.layers.thucvat,
-    chkMainId: "chkThucVat",
-    subClass: "sub-thucvat",
-    columnName: "muc_do_nguy_cap",
-  },
-};
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function getLayerMeta(typeName) {
   return LAYER_META[typeName] || null;
 }

@@ -66,7 +66,6 @@ if (!verifyToken && localStorage.getItem("webgis_token")) {
       throw new Error(data.message || "Xác nhận email thất bại");
     }
 
-<<<<<<< HEAD
     moSection("login");
     showToast(data.message || "Xác nhận email thành công!", "success");
     showMsg(
@@ -74,10 +73,6 @@ if (!verifyToken && localStorage.getItem("webgis_token")) {
       "Email đã được xác nhận. Bạn có thể đăng nhập sau khi quản trị viên phê duyệt.",
       "success",
     );
-=======
-    showToast(data.message || "Xác nhận email thành công!", "success");
-    gotoLogin();
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   } catch (e) {
     moSection("login");
     showMsg(loginMsg, e.message || "Xác nhận email thất bại");
@@ -86,76 +81,7 @@ if (!verifyToken && localStorage.getItem("webgis_token")) {
   }
 })();
 
-<<<<<<< HEAD
 //  form đăng nhập
-=======
-// Toggle
-btnToRegister?.addEventListener("click", (e) => {
-  e.preventDefault?.();
-  gotoRegister();
-});
-
-btnToLogin?.addEventListener("click", (e) => {
-  e.preventDefault?.();
-  gotoLogin();
-});
-
-// REGISTER
-frmRegister?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  hide(successMsg);
-  hide(errorRegMsg);
-
-  const ho_ten = document.getElementById("regName")?.value.trim() || "";
-  const email = document.getElementById("regEmail")?.value.trim() || "";
-  const mat_khau = document.getElementById("regPass")?.value || "";
-  const mat_khau2 = document.getElementById("regPassConfirm")?.value || "";
-  const btn = document.getElementById("btnRegSubmit");
-
-  if (mat_khau !== mat_khau2) {
-    show(errorRegMsg, "❌ Mật khẩu nhập lại không khớp!");
-    return;
-  }
-
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = "⏳ Đang xử lý...";
-  }
-
-  try {
-    const r = await fetch(`${API_BASE}/api/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ho_ten, email, mat_khau }),
-    });
-
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const msg = [data.message, data.detail, data.code]
-        .filter(Boolean)
-        .join(" — ");
-      throw new Error(msg || "Lỗi đăng ký");
-    }
-
-    showToast(data.message || "Đăng ký thành công!", "success");
-    frmRegister.reset();
-
-    setTimeout(() => {
-      hide(successMsg);
-      gotoLogin();
-    }, 1200);
-  } catch (err) {
-    show(errorRegMsg, "❌ " + (err.message || err));
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = "Đăng ký";
-    }
-  }
-});
-
-// LOGIN
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 frmLogin?.addEventListener("submit", async (e) => {
   e.preventDefault();
   hideMsg(loginMsg);
@@ -177,20 +103,10 @@ frmLogin?.addEventListener("submit", async (e) => {
     });
 
     const data = await r.json().catch(() => ({}));
-<<<<<<< HEAD
     if (!r.ok) {
       throw new Error(data.message || "Sai tài khoản hoặc mật khẩu!");
     }
 
-=======
-
-    // 🛡️ THÊM ĐOẠN KIỂM TRA LỖI NÀY:
-    if (!r.ok) {
-      throw new Error(data.message || "Sai tài khoản hoặc mật khẩu!");
-    }
-
-    // Chỉ khi đăng nhập thành công mới chạy tiếp các dòng dưới đây
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     localStorage.setItem("webgis_token", data.token);
     localStorage.setItem("webgis_roles", JSON.stringify(data.roles || []));
     localStorage.setItem(
@@ -199,19 +115,6 @@ frmLogin?.addEventListener("submit", async (e) => {
     );
     localStorage.setItem("webgis_user", data.ho_ten || "");
 
-<<<<<<< HEAD
-=======
-    // compat role cũ
-    const roles = (data.roles || []).map((x) => (x || "").trim().toLowerCase());
-    const mainRole =
-      roles.includes("admin") || roles.includes("quan_tri")
-        ? "admin"
-        : roles.includes("can_bo")
-          ? "can_bo"
-          : "guest";
-    localStorage.setItem("webgis_role", mainRole);
-
->>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     window.location.href = "index.html";
   } catch (err) {
     showMsg(loginMsg, err.message || "Đăng nhập thất bại");

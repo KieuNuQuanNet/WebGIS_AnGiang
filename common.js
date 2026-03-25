@@ -1,6 +1,7 @@
-// common.js (dùng chung toàn dự án frontend)
-window.WEBGIS_API_BASE = window.WEBGIS_API_BASE || "http://localhost:3000";
-
+<<<<<<< HEAD
+// lưu trữ đăng nhập và hỗ trợ người dùng
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 const WEBGIS_STORAGE_KEYS = [
   "webgis_token",
   "webgis_roles",
@@ -41,6 +42,16 @@ function requireAdmin(redirect = "index.html") {
   }
   return true;
 }
+
+function requireApprover(redirect = "index.html") {
+  if (!requireLogin()) return false;
+  if (!isAdmin() && !hasPerm("feature.approve")) {
+    window.location.href = redirect;
+    return false;
+  }
+  return true;
+}
+
 function getRoles() {
   return (readJSON("webgis_roles", []) || []).map((x) =>
     String(x).toLowerCase(),
@@ -55,14 +66,31 @@ function getPerms() {
 
 function hasPerm(perm) {
   if (!getToken()) return false;
+
+<<<<<<< HEAD
+  // admin cho qua còn lại kiểm tra quyền
+=======
+  // QUAN TRỌNG: Nếu là Admin thì cho qua hết, không cần check mảng permissions
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+  if (isAdmin()) return true;
+
   const p = String(perm || "").toLowerCase();
   return getPerms().includes(p);
 }
 
 function isAdmin() {
   const roles = getRoles();
-  const perms = getPerms();
-  return roles.includes("admin") || perms.includes("admin.users");
+  const singleRole = localStorage.getItem("webgis_role") || "";
+
+  // Kiểm tra tất cả các mã role có thể là Admin
+  const adminCodes = ["admin", "quan_tri", "administrator"];
+
+  const hasAdminRoleInArray = roles.some((r) =>
+    adminCodes.includes(r.toLowerCase()),
+  );
+  const isSingleRoleAdmin = adminCodes.includes(singleRole.toLowerCase());
+
+  return hasAdminRoleInArray || isSingleRoleAdmin;
 }
 
 function getUserIdFromToken() {
@@ -72,7 +100,7 @@ function getUserIdFromToken() {
     const base64Url = token.split(".")[1] || "";
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const padded = base64 + "===".slice((base64.length + 3) % 4);
-    const payload = JSON.parse(atob(padded));
+    const payload = JSON.parse(decodeURIComponent(escape(atob(padded))));
     const sub = payload?.sub;
     return Number.isFinite(Number(sub)) ? Number(sub) : null;
   } catch {
@@ -80,13 +108,12 @@ function getUserIdFromToken() {
   }
 }
 
+// api kèm token
 async function apiJSON(path, opts = {}) {
-  const base = window.WEBGIS_API_BASE || "http://localhost:3000";
   const token = getToken();
-
+  const base = window.WEBGIS_API_BASE || "";
   const headers = { ...(opts.headers || {}) };
 
-  // auto JSON body
   if (
     opts.body &&
     typeof opts.body === "object" &&
@@ -119,26 +146,39 @@ async function apiJSON(path, opts = {}) {
   return data;
 }
 
+// hỗ trợ xử lý chuỗi và time
 function esc(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c],
-  );
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&apos;",
+        })[c],
+    )
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
 function fmt(dt) {
   if (!dt) return "";
   const d = new Date(dt);
-  return isNaN(d.getTime()) ? "" : d.toLocaleString("vi-VN");
-}
+  if (isNaN(d.getTime())) return "";
 
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+
+  const day = d.getDate();
+  const mon = d.getMonth() + 1;
+  const yr = d.getFullYear();
+
+  return `${hh}:${mm}:${ss} ${day}/${mon}/${yr}`;
+}
 function debounce(fn, ms) {
   let t;
   return (...args) => {
@@ -147,11 +187,16 @@ function debounce(fn, ms) {
   };
 }
 
-// Dùng cho index.html (nếu có navAuth/navUser/navAdminUsers)
+<<<<<<< HEAD
+// navbar
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function initAuthNav() {
   const navAuth = document.getElementById("navAuth");
   const navUser = document.getElementById("navUser");
   const navAdmin = document.getElementById("navAdminUsers");
+  const navManage = document.getElementById("navManage");
+
   if (!navAuth) return;
 
   const logged = !!getToken();
@@ -159,22 +204,49 @@ function initAuthNav() {
   if (navUser) {
     if (logged) {
       navUser.classList.remove("hidden");
-      navUser.textContent = `👤 ${localStorage.getItem("webgis_user") || "User"}`;
+      const name = localStorage.getItem("webgis_user") || "User";
+<<<<<<< HEAD
+      const roles = getRoles();
+      const roleDisp = isAdmin()
+        ? "Quản trị viên"
+        : roles.includes("can_bo")
+          ? "Cán bộ"
+          : roles.includes("nguoi_dung")
+            ? "Người dùng"
+            : roles.includes("guest") || roles.includes("khach")
+              ? "Khách"
+              : "Người dùng";
+=======
+      const roleDisp = isAdmin()
+        ? "Quản trị"
+        : localStorage.getItem("webgis_role") === "can_bo"
+          ? "Cán bộ"
+          : "Người dùng";
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+      navUser.textContent = ` ${name} (${roleDisp})`;
     } else {
       navUser.classList.add("hidden");
       navUser.textContent = "";
     }
   }
+  const approver = logged && (isAdmin() || hasPerm("feature.approve"));
 
   if (navAdmin) navAdmin.classList.toggle("hidden", !(logged && isAdmin()));
+  if (navManage) navManage.classList.toggle("hidden", !approver);
 
   if (logged) {
     navAuth.textContent = "Đăng xuất";
     navAuth.href = "#";
-    navAuth.onclick = (e) => {
+    navAuth.onclick = async (e) => {
       e.preventDefault();
-      clearAuth();
-      window.location.href = "index.html";
+      try {
+        await apiJSON("/api/logout", { method: "POST" });
+      } catch (err) {
+        console.warn("Logout server error:", err);
+      } finally {
+        clearAuth();
+        window.location.href = "index.html";
+      }
     };
   } else {
     navAuth.textContent = "Đăng nhập";
@@ -183,7 +255,10 @@ function initAuthNav() {
   }
 }
 
-// Dùng cho index.html (ẩn/hiện theo data-perm)
+<<<<<<< HEAD
+// ẩn hiển thị theo quyền
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function applyPermUI() {
   document.querySelectorAll("[data-perm]").forEach((el) => {
     const p = el.getAttribute("data-perm");
@@ -198,16 +273,14 @@ function applyPermUI() {
     document.getElementById("panelThongKe")?.classList.add("hidden");
   }
 }
-// ===== Password toggle: áp dụng cho mọi input password (global) =====
+
 (function initTogglePasswordGlobal() {
   const ICON_SHOW = "images/openmk.jpg";
   const ICON_HIDE = "images/closemk.jpg";
 
-  // 1) Tự chèn nút cho mọi input password
   document.querySelectorAll('input[type="password"]').forEach((input, idx) => {
     if (!input.id) input.id = `pwd_${idx}_${Date.now()}`;
 
-    // tránh chèn lặp
     if (
       input.parentElement?.querySelector(
         `.toggle-pass[data-target="${input.id}"]`,
@@ -215,7 +288,6 @@ function applyPermUI() {
     )
       return;
 
-    // add class để CSS position icon
     input.parentElement?.classList?.add("pwd-wrap");
 
     const btn = document.createElement("button");
@@ -234,7 +306,6 @@ function applyPermUI() {
     input.parentElement?.appendChild(btn);
   });
 
-  // 2) Bắt click bằng event delegation (đỡ phải addEventListener từng nút)
   document.addEventListener("click", (e) => {
     const btn = e.target.closest?.(".toggle-pass");
     if (!btn) return;
@@ -252,3 +323,135 @@ function applyPermUI() {
     btn.setAttribute("aria-label", willShow ? "Ẩn mật khẩu" : "Hiện mật khẩu");
   });
 })();
+
+<<<<<<< HEAD
+// phân trang
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+function buildPageList(totalPages, current, maxPages = 100, radius = 2) {
+  totalPages = Math.max(1, Number(totalPages || 1));
+  current = Math.min(Math.max(1, Number(current || 1)), totalPages);
+
+  if (totalPages <= maxPages) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages = new Set([1, totalPages, current]);
+  for (let i = 1; i <= radius; i++) {
+    pages.add(current - i);
+    pages.add(current + i);
+  }
+
+  const arr = [...pages]
+    .filter((p) => p >= 1 && p <= totalPages)
+    .sort((a, b) => a - b);
+
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    out.push(arr[i]);
+    if (i < arr.length - 1 && arr[i + 1] - arr[i] > 1) out.push("...");
+  }
+  return out;
+}
+
+function renderPager(
+  pagerEl,
+  {
+    page = 1,
+    total = 0,
+    limit = 10,
+    onChange,
+    maxPages = 100,
+    radius = 2,
+  } = {},
+) {
+  if (!pagerEl) return;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(Number(total || 0) / Number(limit || 1)),
+  );
+  page = Math.min(Math.max(1, Number(page || 1)), totalPages);
+
+  if (totalPages <= 1) {
+    pagerEl.innerHTML = "";
+    return;
+  }
+
+  const pages = buildPageList(totalPages, page, maxPages, radius);
+  const prevDisabled = page <= 1;
+  const nextDisabled = page >= totalPages;
+
+  pagerEl.innerHTML = `
+    <button ${prevDisabled ? "disabled" : ""} data-page="${page - 1}">‹</button>
+    ${pages
+      .map((p) =>
+        p === "..."
+          ? `<span class="dots">…</span>`
+          : `<button class="${p === page ? "active" : ""}" data-page="${p}">${p}</button>`,
+      )
+      .join("")}
+    <button ${nextDisabled ? "disabled" : ""} data-page="${page + 1}">›</button>
+  `;
+
+  pagerEl.querySelectorAll("button[data-page]").forEach((btn) => {
+    btn.onclick = () => {
+      const p = Number(btn.getAttribute("data-page"));
+      const safe = Math.min(Math.max(1, p), totalPages);
+      if (typeof onChange === "function") onChange(safe, totalPages);
+    };
+  });
+}
+<<<<<<< HEAD
+// thông báo nhỏ
+function showToast(message, type = "success") {
+=======
+function showToast(message, type = "success") {
+  // Bổ sung định nghĩa các biểu tượng ở đây
+  const icons = {
+    success: "✅",
+    error: "❌",
+    info: "ℹ️",
+    warning: "⚠️",
+  };
+
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `webgis-toast ${type}`;
+
+<<<<<<< HEAD
+  const icons = {
+    success: "OK",
+    error: "!",
+    info: "i",
+    warning: "!",
+  };
+
+  toast.innerHTML = `<span>${icons[type] || ""}</span> <span>${message}</span>`;
+
+=======
+  // Bây giờ biến icons đã tồn tại, dòng này sẽ chạy bình thường
+  toast.innerHTML = `<span>${icons[type] || ""}</span> <span>${message}</span>`;
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("toast-fade-out");
+    setTimeout(() => {
+      if (toast.parentNode === container) {
+        container.removeChild(toast);
+      }
+    }, 500);
+<<<<<<< HEAD
+  }, 8000);
+=======
+  }, 4000);
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+}

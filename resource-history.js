@@ -1,14 +1,29 @@
+// api lịch sử
 const api = apiJSON;
-
+const state = {
+  page: 1,
+<<<<<<< HEAD
+  limit: 50,
+  total: 0,
+};
+// hỗ trợ hiển thị
+=======
+  limit: 50, // Số bản ghi mỗi trang
+  total: 0,
+};
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 function statusBadge(st) {
   const s = String(st || "").toLowerCase();
   const map = {
     nhap: "Nhập",
     cho_duyet: "Chờ duyệt",
+    cho_xoa: "Chờ xóa",
     da_duyet: "Đã duyệt",
     cong_bo: "Công bố",
+    da_xoa: "Đã xóa",
     tu_choi: "Từ chối",
   };
+
   const label = map[s] || st || "-";
   return `<span class="badge">${esc(label)}</span>`;
 }
@@ -23,8 +38,13 @@ function stepCell(time, who, emptyText) {
   `;
 }
 
+// khởi tạo trang
 document.addEventListener("DOMContentLoaded", async () => {
-  if (!requireAdmin()) return;
+  if (!requireApprover()) return;
+  const sideAdminUsers = document.getElementById("sideAdminUsers");
+  if (sideAdminUsers) {
+    sideAdminUsers.classList.toggle("hidden", !isAdmin());
+  }
 
   const helloUser = document.getElementById("helloUser");
   if (helloUser) {
@@ -41,9 +61,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnReload")?.addEventListener("click", load);
   document.getElementById("q")?.addEventListener("input", debounce(load, 250));
 
+<<<<<<< HEAD
+=======
+  // Thêm dòng này để khi chọn lớp khác thì danh sách tự tải lại
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+  document.getElementById("cboLayer")?.addEventListener("change", load);
+
   await load();
 });
 
+// tải dữ liệu
 async function load() {
   const tbody = document.getElementById("tbody");
   const msg = document.getElementById("msg");
@@ -56,20 +83,39 @@ async function load() {
 
   try {
     const q = (document.getElementById("q")?.value || "").trim();
+    const layerChon =
+      document.getElementById("cboLayer")?.value || "angiang:rung";
 
-    // ✅ API mới: lịch sử cập nhật tài nguyên
-    const rows = await api(
-      `/api/admin/resource-history?limit=300&q=${encodeURIComponent(q)}`,
+<<<<<<< HEAD
+=======
+    // Lấy toàn bộ dữ liệu (hoặc tăng limit lên cao)
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+    const allRows = await api(
+      `/api/admin/resource-history?layer=${layerChon}&limit=1000&q=${encodeURIComponent(q)}`,
     );
 
-    rows.forEach((r, idx) => {
+    state.total = allRows.length;
+
+<<<<<<< HEAD
+=======
+    // Cắt dữ liệu theo trang
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+    const start = (state.page - 1) * state.limit;
+    const pageItems = allRows.slice(start, start + state.limit);
+
+    pageItems.forEach((r, idx) => {
+<<<<<<< HEAD
+      const stt = start + idx + 1;
+=======
+      const stt = start + idx + 1; // STT chạy đúng theo trang
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="text-center">${idx + 1}</td>
-        <td><b>${esc(r.ten_tai_nguyen || "-")}</b><div class="muted">${esc(r.ma_lop || "")}</div></td>
+            <td class="text-center">${stt}</td>
+           <td><b>${esc(r.ten_tai_nguyen || "-")}</b><div class="muted">${esc(r.ma_lop || "")}</div></td>
         <td>${statusBadge(r.trang_thai_du_lieu)}</td>
         <td>${stepCell(r.ngay_tao, r.ten_nguoi_tao || r.nguoi_tao, "Chưa có")}</td>
-        <td>${stepCell(r.ngay_cap_nhat, r.ten_nguoi_cap_nhat || r.nguoi_cap_nhat, "Chưa cập nhật")}</td>
+        <td>${stepCell(r.ngay_cap_nhat, r.ten_nguoi_cap_nhat || r.nguoi_cap_nhat || "-", "Chưa cập nhật")}</td>
         <td>${
           String(r.trang_thai_du_lieu).toLowerCase() === "tu_choi" &&
           r.ly_do_tu_choi
@@ -81,14 +127,26 @@ async function load() {
       `;
       tbody.appendChild(tr);
     });
-
-    if (!rows.length) {
+    renderPager(document.getElementById("pager"), {
+      page: state.page,
+      total: state.total,
+      limit: state.limit,
+      onChange: (p) => {
+        state.page = p;
+<<<<<<< HEAD
+        load();
+=======
+        load(); // Tải lại trang mới
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+      },
+    });
+    if (!allRows.length) {
       tbody.innerHTML = `<tr><td colspan="7" class="muted">Chưa có dữ liệu lịch sử cập nhật</td></tr>`;
     }
   } catch (e) {
     if (msg) {
       msg.className = "msg show";
-      msg.textContent = "❌ " + e.message;
+      msg.textContent = e.message;
     }
   }
 }

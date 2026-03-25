@@ -24,6 +24,7 @@ body {
   background: var(--bg);
 }
 
+/* khung trang */
 .layout {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -70,6 +71,7 @@ body {
   background: rgba(0, 0, 0, 0.18);
 }
 
+/*topbar và thống kê*/
 .main {
   padding: 18px 20px 30px;
 }
@@ -126,6 +128,7 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* bảng dữ liệu */
 .table-card {
   padding: 0;
   overflow: hidden;
@@ -260,9 +263,7 @@ select {
 .resource-table {
   min-width: 1450px;
 }
-/* =========================
-   PAGER (pagination)
-========================= */
+
 .pager {
   display: flex;
   justify-content: center;

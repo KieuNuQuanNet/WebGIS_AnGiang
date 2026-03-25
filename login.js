@@ -1,53 +1,59 @@
-const API_BASE = window.WEBGIS_API_BASE || "http://localhost:3000";
-
-const secLogin = document.getElementById("sectionLogin");
-const secRegister = document.getElementById("sectionRegister");
-const btnToRegister = document.getElementById("btnToRegister");
-const btnToLogin = document.getElementById("btnToLogin");
+// cấu hình phần đăng nhập
+const API_BASE = window.WEBGIS_API_BASE || "";
 
 const frmLogin = document.getElementById("frmLogin");
 const frmRegister = document.getElementById("frmRegister");
+const loginMsg = document.getElementById("loginMsg");
+const registerMsg = document.getElementById("registerMsg");
+const brandLogoImage = document.getElementById("brandLogoImage");
+const sectionLogin = document.getElementById("sectionLogin");
+const sectionRegister = document.getElementById("sectionRegister");
+const btnShowRegister = document.getElementById("btnShowRegister");
+const btnShowLogin = document.getElementById("btnShowLogin");
+const authTitle = document.getElementById("authTitle");
 
-const errorMsg = document.getElementById("errorMsg");
-const successMsg = document.getElementById("successMsg");
-const errorRegMsg = document.getElementById("errorRegMsg");
-
-function show(el, msg) {
-  if (!el) return;
-  el.style.display = "block";
-  if (typeof msg === "string") el.innerHTML = msg;
-}
-function hide(el) {
-  if (!el) return;
-  el.style.display = "none";
-}
-
-function gotoRegister() {
-  secLogin?.classList.remove("active");
-  secRegister?.classList.add("active");
-  hide(errorMsg);
-  hide(successMsg);
-  hide(errorRegMsg);
+// hiển thị thông báo
+function showMsg(target, message, type = "error") {
+  if (!target) return;
+  target.classList.remove("hidden", "msg-error", "msg-success");
+  target.classList.add(type === "success" ? "msg-success" : "msg-error");
+  target.textContent = message;
 }
 
-function gotoLogin() {
-  secRegister?.classList.remove("active");
-  secLogin?.classList.add("active");
-  hide(errorMsg);
-  hide(successMsg);
-  hide(errorRegMsg);
+function hideMsg(target) {
+  if (!target) return;
+  target.classList.add("hidden");
+  target.textContent = "";
 }
 
+function moSection(section) {
+  const laDangKy = section === "register";
+  sectionLogin?.classList.toggle("active", !laDangKy);
+  sectionRegister?.classList.toggle("active", laDangKy);
+
+  if (authTitle) {
+    authTitle.textContent = laDangKy ? "TẠO TÀI KHOẢN" : "ĐĂNG NHẬP HỆ THỐNG";
+  }
+
+  hideMsg(loginMsg);
+  hideMsg(registerMsg);
+}
+
+brandLogoImage?.addEventListener("error", () => {
+  brandLogoImage.classList.add("hidden");
+});
+
+btnShowRegister?.addEventListener("click", () => moSection("register"));
+btnShowLogin?.addEventListener("click", () => moSection("login"));
+
+// xử lý token email
 const qs = new URLSearchParams(window.location.search);
 const verifyToken = qs.get("verify");
-const resetToken = qs.get("reset"); // ✅ thêm
 
-// Nếu đang verify/reset thì KHÔNG redirect vội
-if (!verifyToken && !resetToken && localStorage.getItem("webgis_token")) {
+if (!verifyToken && localStorage.getItem("webgis_token")) {
   window.location.href = "index.html";
 }
 
-// ===== EMAIL VERIFY (khi user bấm link trong email) =====
 (async function handleVerify() {
   if (!verifyToken) return;
 
@@ -56,19 +62,33 @@ if (!verifyToken && !resetToken && localStorage.getItem("webgis_token")) {
       `${API_BASE}/api/xac-nhan-email?token=${encodeURIComponent(verifyToken)}`,
     );
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.message || "Xác nhận email thất bại");
+    if (!r.ok) {
+      throw new Error(data.message || "Xác nhận email thất bại");
+    }
 
-    show(successMsg, "✅ " + (data.message || "Xác nhận email thành công!"));
+<<<<<<< HEAD
+    moSection("login");
+    showToast(data.message || "Xác nhận email thành công!", "success");
+    showMsg(
+      loginMsg,
+      "Email đã được xác nhận. Bạn có thể đăng nhập sau khi quản trị viên phê duyệt.",
+      "success",
+    );
+=======
+    showToast(data.message || "Xác nhận email thành công!", "success");
     gotoLogin();
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
   } catch (e) {
-    show(errorMsg, "❌ " + (e.message || e));
-    gotoLogin();
+    moSection("login");
+    showMsg(loginMsg, e.message || "Xác nhận email thất bại");
   } finally {
-    // xóa ?verify=... khỏi URL
     window.history.replaceState({}, "", "login.html");
   }
 })();
 
+<<<<<<< HEAD
+//  form đăng nhập
+=======
 // Toggle
 btnToRegister?.addEventListener("click", (e) => {
   e.preventDefault?.();
@@ -117,12 +137,7 @@ frmRegister?.addEventListener("submit", async (e) => {
       throw new Error(msg || "Lỗi đăng ký");
     }
 
-    show(
-      successMsg,
-      "✅ " +
-        (data.message ||
-          "Đăng ký thành công. Vui lòng kiểm tra email để xác nhận, sau đó chờ Admin duyệt."),
-    );
+    showToast(data.message || "Đăng ký thành công!", "success");
     frmRegister.reset();
 
     setTimeout(() => {
@@ -140,9 +155,10 @@ frmRegister?.addEventListener("submit", async (e) => {
 });
 
 // LOGIN
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 frmLogin?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  hide(errorMsg);
+  hideMsg(loginMsg);
 
   const username = document.getElementById("loginUser")?.value.trim() || "";
   const password = document.getElementById("loginPass")?.value || "";
@@ -150,7 +166,7 @@ frmLogin?.addEventListener("submit", async (e) => {
 
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = "⏳ Đang kiểm tra...";
+    btn.textContent = "Đang đăng nhập...";
   }
 
   try {
@@ -161,194 +177,112 @@ frmLogin?.addEventListener("submit", async (e) => {
     });
 
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.message || "Lỗi đăng nhập");
+<<<<<<< HEAD
+    if (!r.ok) {
+      throw new Error(data.message || "Sai tài khoản hoặc mật khẩu!");
+    }
 
-    // ✅ Lưu token + roles + permissions
+=======
+
+    // 🛡️ THÊM ĐOẠN KIỂM TRA LỖI NÀY:
+    if (!r.ok) {
+      throw new Error(data.message || "Sai tài khoản hoặc mật khẩu!");
+    }
+
+    // Chỉ khi đăng nhập thành công mới chạy tiếp các dòng dưới đây
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     localStorage.setItem("webgis_token", data.token);
     localStorage.setItem("webgis_roles", JSON.stringify(data.roles || []));
     localStorage.setItem(
       "webgis_permissions",
       JSON.stringify(data.permissions || []),
     );
-    localStorage.setItem(
-      "webgis_perms",
-      JSON.stringify(data.permissions || []),
-    ); // compat
     localStorage.setItem("webgis_user", data.ho_ten || "");
 
+<<<<<<< HEAD
+=======
     // compat role cũ
-    const roles = (data.roles || []).map((x) => (x || "").toLowerCase());
-    const mainRole = roles.includes("admin")
-      ? "admin"
-      : roles.includes("can_bo")
-        ? "can_bo"
-        : "guest";
+    const roles = (data.roles || []).map((x) => (x || "").trim().toLowerCase());
+    const mainRole =
+      roles.includes("admin") || roles.includes("quan_tri")
+        ? "admin"
+        : roles.includes("can_bo")
+          ? "can_bo"
+          : "guest";
     localStorage.setItem("webgis_role", mainRole);
 
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     window.location.href = "index.html";
   } catch (err) {
-    show(errorMsg, "❌ " + (err.message || err));
+    showMsg(loginMsg, err.message || "Đăng nhập thất bại");
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = "Đăng nhập";
+      btn.textContent = "Đăng nhập";
     }
   }
 });
-// ===== FORGOT/RESET PASSWORD FLOW (FIX UI + FIX API_BASE) =====
-const secForgot = document.getElementById("forgotBox");
-const secReset = document.getElementById("resetBox");
 
-const btnToForgot = document.getElementById("btnToForgot");
-const btnBackToLogin1 = document.getElementById("btnBackToLogin1");
-const btnBackToLogin2 = document.getElementById("btnBackToLogin2");
-
-const btnForgotSubmit = document.getElementById("btnForgotSubmit");
-const btnResetSubmit = document.getElementById("btnResetSubmit");
-
-const forgotEmail = document.getElementById("forgotEmail");
-const resetEmail = document.getElementById("resetEmail");
-const resetPass = document.getElementById("resetPass");
-const resetPass2 = document.getElementById("resetPass2");
-
-const forgotMsg = document.getElementById("forgotMsg");
-const forgotErr = document.getElementById("forgotErr");
-const resetMsg = document.getElementById("resetMsg");
-const resetErr = document.getElementById("resetErr");
-
-function setActiveSection(sec) {
-  [secLogin, secRegister, secForgot, secReset].forEach((s) =>
-    s?.classList.remove("active"),
-  );
-  sec?.classList.add("active");
-}
-
-function gotoForgot() {
-  setActiveSection(secForgot);
-  hide(forgotMsg);
-  hide(forgotErr);
-  hide(resetMsg);
-  hide(resetErr);
-}
-
-function gotoReset() {
-  setActiveSection(secReset);
-  hide(forgotMsg);
-  hide(forgotErr);
-  hide(resetMsg);
-  hide(resetErr);
-}
-
-// Click "Quên mật khẩu?"
-btnToForgot?.addEventListener("click", (e) => {
+// tạo tài khoan form
+frmRegister?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  gotoForgot();
-  forgotEmail?.focus();
-});
+  hideMsg(registerMsg);
 
-// Back
-btnBackToLogin1?.addEventListener("click", (e) => {
-  e.preventDefault();
-  gotoLogin();
-});
-btnBackToLogin2?.addEventListener("click", (e) => {
-  e.preventDefault();
-  gotoLogin();
-});
+  const hoTen = document.getElementById("registerName")?.value.trim() || "";
+  const email = document.getElementById("registerEmail")?.value.trim() || "";
+  const pass = document.getElementById("registerPass")?.value || "";
+  const pass2 = document.getElementById("registerPass2")?.value || "";
+  const btn = document.getElementById("btnRegisterSubmit");
 
-// Nếu URL có reset token -> mở form đổi mật khẩu
-if (resetToken) {
-  gotoReset();
-  // bỏ query khỏi URL (nhưng vẫn giữ resetToken trong biến)
-  window.history.replaceState({}, "", "login.html");
-  resetEmail?.focus();
-}
-
-// Gửi mail reset
-btnForgotSubmit?.addEventListener("click", async () => {
-  hide(forgotMsg);
-  hide(forgotErr);
-
-  const email = (forgotEmail?.value || "").trim();
-  if (!email) {
-    show(forgotErr, "❌ Vui lòng nhập email.");
+  if (!hoTen || !email || !pass) {
+    showMsg(registerMsg, "Vui lòng nhập đầy đủ thông tin");
     return;
   }
 
-  btnForgotSubmit.disabled = true;
-  btnForgotSubmit.textContent = "⏳ Đang gửi...";
+  if (pass.length < 6) {
+    showMsg(registerMsg, "Mật khẩu phải có ít nhất 6 ký tự");
+    return;
+  }
+
+  if (pass !== pass2) {
+    showMsg(registerMsg, "Nhập lại mật khẩu chưa khớp");
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Đang tạo tài khoản...";
+  }
 
   try {
-    const res = await fetch(`${API_BASE}/api/forgot-password`, {
+    const r = await fetch(`${API_BASE}/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        ho_ten: hoTen,
+        email,
+        mat_khau: pass,
+      }),
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || "Gửi thất bại");
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      throw new Error(data.message || "Tạo tài khoản thất bại");
+    }
 
-    show(
-      forgotMsg,
+    frmRegister.reset();
+    showMsg(
+      registerMsg,
       data.message ||
-        "✅ Nếu email tồn tại, hệ thống đã gửi link đổi mật khẩu.",
+        "Đăng ký thành công. Hãy xác nhận email và chờ quản trị viên duyệt.",
+      "success",
     );
   } catch (err) {
-    show(forgotErr, "❌ " + (err.message || err));
+    showMsg(registerMsg, err.message || "Tạo tài khoản thất bại");
   } finally {
-    btnForgotSubmit.disabled = false;
-    btnForgotSubmit.textContent = "Gửi link đổi mật khẩu";
-  }
-});
-
-// Đổi mật khẩu
-btnResetSubmit?.addEventListener("click", async () => {
-  hide(resetMsg);
-  hide(resetErr);
-
-  const email = (resetEmail?.value || "").trim();
-  const p1 = resetPass?.value || "";
-  const p2 = resetPass2?.value || "";
-
-  if (!resetToken) {
-    show(resetErr, "❌ Link reset không hợp lệ (thiếu token).");
-    return;
-  }
-  if (!email) {
-    show(resetErr, "❌ Vui lòng nhập email.");
-    return;
-  }
-  if (p1.length < 6) {
-    show(resetErr, "❌ Mật khẩu tối thiểu 6 ký tự.");
-    return;
-  }
-  if (p1 !== p2) {
-    show(resetErr, "❌ Mật khẩu nhập lại không khớp.");
-    return;
-  }
-
-  btnResetSubmit.disabled = true;
-  btnResetSubmit.textContent = "⏳ Đang cập nhật...";
-
-  try {
-    const res = await fetch(`${API_BASE}/api/reset-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: resetToken, email, new_password: p1 }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || "Đổi mật khẩu thất bại");
-
-    show(
-      resetMsg,
-      data.message || "✅ Đổi mật khẩu thành công. Bạn có thể đăng nhập lại.",
-    );
-    setTimeout(() => gotoLogin(), 1200);
-  } catch (err) {
-    show(resetErr, "❌ " + (err.message || err));
-  } finally {
-    btnResetSubmit.disabled = false;
-    btnResetSubmit.textContent = "Cập nhật mật khẩu";
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Tạo tài khoản";
+    }
   }
 });

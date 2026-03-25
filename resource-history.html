@@ -6,6 +6,7 @@
     <title>Quản trị - Lịch sử Cập nhật</title>
     <link rel="stylesheet" href="common.css" />
     <link rel="stylesheet" href="admin_users.css" />
+    <script src="config.js" defer></script>
     <script src="common.js" defer></script>
     <script src="resource-history.js" defer></script>
   </head>
@@ -19,7 +20,13 @@
         </div>
 
         <nav class="side-nav">
-          <a class="side-link" href="admin_users.html">Quản lý người dùng</a>
+          <a
+            id="sideAdminUsers"
+            class="side-link hidden"
+            href="admin_users.html"
+            >Quản lý người dùng</a
+          >
+
           <a class="side-link active" href="resource-history.html"
             >Lịch sử Cập nhật</a
           >
@@ -41,13 +48,21 @@
 
         <section class="card table-card">
           <div class="table-head">
-            <h2>NHẬT KÝ ĐĂNG NHẬP HỆ THỐNG</h2>
+            <h2>LỊCH SỬ CẬP NHẬT TÀI NGUYÊN</h2>
             <div class="table-actions">
-              <input
-                id="q"
-                class="input"
-                placeholder="Tìm theo email / họ tên..."
-              />
+<<<<<<< HEAD
+=======
+              <!-- Thêm ô chọn lớp dữ liệu -->
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+              <select id="cboLayer" class="input w-200">
+                <option value="angiang:rung">Tài nguyên Rừng</option>
+                <option value="angiang:dat">Tài nguyên Đất</option>
+                <option value="angiang:waterways">Tài nguyên Nước</option>
+                <option value="angiang:khoangsan_diem_mo">Khoáng sản</option>
+                <option value="angiang:dongvat">Động vật</option>
+                <option value="angiang:thucvat">Thực vật</option>
+              </select>
+              <input id="q" class="input" placeholder="Tìm tên tài nguyên..." />
               <button id="btnReload" class="btn">Làm mới</button>
             </div>
           </div>
@@ -56,13 +71,13 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th style="width: 70px">STT</th>
+                  <th class="w-70">STT</th>
                   <th>TÀI NGUYÊN</th>
-                  <th style="width: 130px">TRẠNG THÁI</th>
-                  <th style="width: 220px">KHỞI TẠO</th>
-                  <th style="width: 220px">CẬP NHẬT</th>
-                  <th style="width: 220px">DUYỆT</th>
-                  <th style="width: 220px">CÔNG BỐ</th>
+                  <th class="w-130">TRẠNG THÁI</th>
+                  <th class="w-220">KHỞI TẠO</th>
+                  <th class="w-220">CẬP NHẬT</th>
+                  <th class="w-220">DUYỆT</th>
+                  <th class="w-220">CÔNG BỐ</th>
                 </tr>
               </thead>
               <tbody id="tbody"></tbody>

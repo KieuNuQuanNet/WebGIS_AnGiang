@@ -1,15 +1,20 @@
 <!doctype html>
 <html lang="vi">
   <head>
+    <!-- Cau hinh trang va thu vien ban do -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebGIS An Giang - Đa nền tảng bản đồ</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>WebGIS An Giang</title>
 
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <link
       rel="stylesheet"
@@ -17,16 +22,18 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- CSS dung chung va CSS giao dien -->
     <link rel="stylesheet" href="common.css" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- Thanh dieu huong -->
     <nav class="navbar">
       <div class="navbar-brand">
         <a href="index.html"
           ><img src="images/logo.jpg" alt="Logo" class="brand-logo"
         /></a>
-        Tài Nguyên Thiên Nhiên An Giang
+        NATURALAG
       </div>
       <div class="navbar-search">
         <div class="search-group">
@@ -36,22 +43,205 @@
             placeholder="Tìm sinh vật (VD: Voi, Trăn)..."
             autocomplete="off"
           />
-          <button id="btnSearch">🔍</button>
+          <button id="btnSearch" aria-label="Tìm kiếm">
+            <img src="images/TimKiem.jpg" class="ui-icon nav-icon" alt="" />
+          </button>
         </div>
-        <!-- Kết quả sổ xuống -->
+
         <div id="searchResults" class="search-results hidden"></div>
       </div>
       <div class="navbar-menu">
-        <span id="navUser" class="hidden" style="margin-right: 10px"></span>
+        <span id="navUser" class="hidden"></span>
+<<<<<<< HEAD
+
+        <a id="navManage" href="layer-manage.html" class="hidden">Quản lý</a>
+
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
         <a id="navAuth" href="login.html">Đăng nhập</a>
-        <a id="navAdminUsers" href="admin_users.html" class="hidden"
-          >Quản lý tài khoản</a
+
+        <button
+          id="btnMobileSearch"
+          class="mobile-search-btn"
+          type="button"
+          aria-label="Tìm kiếm"
         >
+<<<<<<< HEAD
+          <img src="images/TimKiem.jpg" class="ui-icon nav-icon" alt="" />
+=======
+
+        <button
+          id="btnMobileSearch"
+          class="mobile-search-btn"
+          type="button"
+          aria-label="Tìm kiếm"
+        >
+          🔍
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+        </button>
+
+        <button
+          id="btnMobileMenu"
+          class="mobile-menu-btn"
+          type="button"
+          aria-label="Mở menu"
+        >
+          ☰
+        </button>
       </div>
     </nav>
+<<<<<<< HEAD
+
+    <!-- Menu mobile -->
+    <div
+      id="mobileMenuOverlay"
+      class="mobile-menu-overlay hidden"
+      aria-hidden="true"
+    >
+      <div
+        class="mobile-menu-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+      >
+        <div class="mobile-menu-header">
+          <div class="mobile-menu-user" id="mobileMenuUser">Khách</div>
+
+          <button
+            id="btnMobileMenuClose"
+            class="mobile-menu-close"
+            type="button"
+            aria-label="Đóng"
+          >
+            Đóng
+          </button>
+        </div>
+
+        <div class="mobile-menu-list">
+          <button class="mobile-menu-item" type="button" data-action="add">
+            Thêm tài nguyên
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="query">
+            Truy vấn
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="stats">
+            Thống kê
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="measure">
+            Đo đạc
+          </button>
+
+          <div class="mobile-menu-sep"></div>
+
+          <a
+            id="mmHistory"
+            class="mobile-menu-item mobile-menu-link"
+            href="resource-history.html"
+            data-perm="feature.approve"
+            >Lịch sử</a
+          >
+          <a
+            id="mmLayerManage"
+            class="mobile-menu-item mobile-menu-link"
+            href="layer-manage.html"
+            data-perm="feature.approve"
+            >Quản lý lớp</a
+          >
+
+          <a
+            id="mmAdminUsers"
+            class="mobile-menu-item mobile-menu-link"
+            href="admin_users.html"
+            >Quản lý tài khoản</a
+          >
+
+          <div class="mobile-menu-sep"></div>
+
+          <button id="mobileMenuAuth" class="mobile-menu-item" type="button">
+            Đăng nhập
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+=======
+
+    <div
+      id="mobileMenuOverlay"
+      class="mobile-menu-overlay hidden"
+      aria-hidden="true"
+    >
+      <div
+        class="mobile-menu-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+      >
+        <div class="mobile-menu-header">
+          <div class="mobile-menu-user" id="mobileMenuUser">👤</div>
+          <button
+            id="btnMobileMenuClose"
+            class="mobile-menu-close"
+            type="button"
+            aria-label="Đóng"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="mobile-menu-list">
+          <button class="mobile-menu-item" type="button" data-action="add">
+            Thêm tài nguyên
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="query">
+            Truy vấn
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="stats">
+            Thống kê
+          </button>
+          <button class="mobile-menu-item" type="button" data-action="measure">
+            Đo đạc
+          </button>
+
+          <div class="mobile-menu-sep"></div>
+
+          <a
+            id="mmHistory"
+            class="mobile-menu-item mobile-menu-link"
+            href="resource-history.html"
+            data-perm="admin.users"
+            >Lịch sử</a
+          >
+          <a
+            id="mmLayerManage"
+            class="mobile-menu-item mobile-menu-link"
+            href="layer-manage.html"
+            >Quản lý lớp</a
+          >
+          <a
+            id="mmReport"
+            class="mobile-menu-item mobile-menu-link"
+            href="baocao.html"
+            >Báo cáo</a
+          >
+          <a
+            id="mmAdminUsers"
+            class="mobile-menu-item mobile-menu-link"
+            href="admin_users.html"
+            >Quản lý tài khoản</a
+          >
+
+          <div class="mobile-menu-sep"></div>
+
+          <button id="mobileMenuAuth" class="mobile-menu-item" type="button">
+            Đăng nhập
+          </button>
+        </div>
+      </div>
+    </div>
     <div id="map"></div>
 
-    <!-- CÁC NÚT CÔNG CỤ (Nút Thêm và Nút Truy Vấn) -->
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     <div class="toolbar-container">
       <div class="tool-group">
         <button
@@ -62,7 +252,7 @@
         >
           +
         </button>
-        <!-- Danh sách thêm tài nguyên -->
+
         <div
           id="danhSachTaiNguyen"
           class="resource-list hidden"
@@ -121,9 +311,12 @@
         class="tool-btn btn-query"
         title="Truy vấn dữ liệu"
       >
-        🔍
+        <img src="images/TruyVan.jpg" class="ui-icon tool-icon" alt="" />
       </button>
-      <!-- Cụm Nút Thống Kê -->
+<<<<<<< HEAD
+
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       <div class="tool-group">
         <button
           id="btnThongKe"
@@ -131,8 +324,9 @@
           title="Xem biểu đồ phân tích"
           data-perm="stats.view"
         >
-          📊
+          <img src="images/ThongKe.jpg" class="ui-icon tool-icon" alt="" />
         </button>
+
         <div
           id="danhSachThongKe"
           class="resource-list hidden"
@@ -184,39 +378,41 @@
             </li>
           </ul>
         </div>
-        <div class="tool-group">
-          <button
-            id="btnDoDat"
-            class="tool-btn btn-measure"
-            title="Đo đạc"
-            data-perm="feature.insert"
-          >
-            📏
-          </button>
+      </div>
 
-          <div
-            id="danhSachDoDat"
-            class="resource-list hidden"
-            data-perm="feature.insert"
-          >
-            <h4>Đo đạc</h4>
-            <ul>
-              <li class="measure-item" data-type="distance">
-                📏 Đo khoảng cách
-              </li>
-              <li class="measure-item" data-type="area">📐 Đo diện tích</li>
-              <li id="btnClearMeasure">🧹 Xóa kết quả đo</li>
-            </ul>
-          </div>
+      <div class="tool-group">
+        <button
+          id="btnDoDat"
+          class="tool-btn btn-measure"
+          title="Đo đạc"
+          data-perm="feature.insert"
+        >
+          <img src="images/DoDac.jpg" class="ui-icon tool-icon" alt="" />
+        </button>
+
+        <div
+          id="danhSachDoDat"
+          class="resource-list hidden"
+          data-perm="feature.insert"
+        >
+          <h4>Đo đạc</h4>
+          <ul>
+            <li class="measure-item" data-type="distance">Đo khoảng cách</li>
+            <li class="measure-item" data-type="area">Đo diện tích</li>
+            <li id="btnClearMeasure">Xóa kết quả đo</li>
+          </ul>
         </div>
       </div>
     </div>
 
-    <!-- BẢNG TRUY VẤN (Mặc định ẩn) -->
+<<<<<<< HEAD
+    <!-- truy vấn -->
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
     <div class="query-panel hidden" id="bangTruyVan">
       <div class="query-header">
         <h3>Bảng Truy Vấn Dữ Liệu</h3>
-        <button class="btn-close" id="btnDongTruyVan">✖</button>
+        <button class="btn-close" id="btnDongTruyVan">Đóng</button>
       </div>
 
       <div class="query-tabs">
@@ -228,7 +424,6 @@
         </button>
       </div>
 
-      <!-- TAB 1: NHẬP ĐIỀU KIỆN LỌC -->
       <div class="tab-content active" id="tabDieuKien">
         <div class="form-group">
           <label>CHỌN LỚP DỮ LIỆU</label>
@@ -244,7 +439,6 @@
 
         <hr class="query-divider" />
 
-        <!-- Ô TÌNH TRẠNG TRỐNG TRƠN, JS SẼ TỰ ĐỘNG BƠM CHỮ VÀO ĐÂY -->
         <div class="form-group" id="khungLocTinhTrang">
           <label id="lblTinhTrang">LỌC THEO TÌNH TRẠNG</label>
           <select class="form-control" id="cboTinhTrang">
@@ -267,7 +461,6 @@
         </button>
       </div>
 
-      <!-- TAB 2: HIỂN THỊ KẾT QUẢ -->
       <div class="tab-content" id="tabKetQua">
         <div id="lstKetQua">
           <div class="empty-result">
@@ -276,51 +469,97 @@
         </div>
       </div>
     </div>
-    <!-- BẢNG HIỂN THỊ BIỂU ĐỒ (DASHBOARD) -->
-    <div
-      id="panelThongKe"
-      class="query-panel hidden"
-      style="width: 420px; left: 70px"
-    >
+
+<<<<<<< HEAD
+    <!-- thống kê -->
+    <div id="panelThongKe" class="query-panel hidden">
       <div class="query-header">
-        <h3 id="txtTenLopThongKe" style="color: #673ab7">📈 Thống kê</h3>
+        <h3 id="txtTenLopThongKe" class="stat-title">Thống kê</h3>
+        <button class="btn-close" id="btnDongThongKe">Đóng</button>
+=======
+    <div id="panelThongKe" class="query-panel hidden">
+      <div class="query-header">
+        <h3 id="txtTenLopThongKe" class="stat-title">📈 Thống kê</h3>
         <button class="btn-close" id="btnDongThongKe">✖</button>
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       </div>
-      <div
-        class="tab-content active"
-        style="max-height: 80vh; overflow-y: auto"
-      >
-        <div id="statLoader" style="text-align: center; padding: 40px 20px">
+      <div class="tab-content active stat-content-area">
+        <div id="statLoader" class="stat-loader-box">
           <div class="spinner"></div>
-          <p style="margin-top: 15px; color: #673ab7; font-weight: bold">
-            Đang kết nối cơ sở dữ liệu...
-          </p>
+          <p class="stat-loader-text">Đang kết nối cơ sở dữ liệu...</p>
         </div>
-        <div id="statContainer" class="hidden">
+        <div id="statContainer" class="stat-content-area">
           <div class="stat-card">
             <canvas id="chartChinh"></canvas>
           </div>
-          <div
-            id="statSummaryText"
-            style="
-              margin-top: 15px;
-              padding: 12px;
-              background: #f3e5f5;
-              border-left: 5px solid #673ab7;
-              border-radius: 4px;
-              font-size: 14px;
-              color: #333;
-              line-height: 1.5;
-            "
-          ></div>
-          <!-- CHÈN NÚT BÁO CÁO VÀO ĐÂY -->
+          <div id="statSummaryText" class="stat-summary-box"></div>
+
           <button id="btnMoBaoCao" class="btn-report-action">
-            📄 XEM & XUẤT BÁO CÁO CHI TIẾT
+            Xem và xuất báo cáo
           </button>
         </div>
       </div>
     </div>
-    <script src="common.js"></script>
-    <script src="script.js"></script>
+<<<<<<< HEAD
+    <!-- báo cáo -->
+    <div id="panelBaoCao" class="query-panel hidden report-panel">
+      <div class="query-header">
+        <h3 id="txtTieuDeBaoCao">Báo cáo chi tiết</h3>
+        <button class="btn-close" id="btnDongBaoCao">Đóng</button>
+      </div>
+
+      <div class="tab-content active report-content-area">
+        <div class="report-toolbar-inline">
+          <button
+            class="btn-report-inline btn-excel-inline"
+            id="btnExportExcelInline"
+          >
+            Xuất file Excel (XLSX)
+          </button>
+          <button
+            class="btn-report-inline btn-pdf-inline"
+            id="btnExportPDFInline"
+          >
+            In & Xuất file PDF (PDF)
+          </button>
+        </div>
+
+        <div class="report-sheet">
+          <div class="report-inline-header">
+            <h2>BÁO CÁO THỐNG KÊ CHI TIẾT</h2>
+            <p id="txtNgayLapBaoCao"></p>
+          </div>
+
+          <p class="report-inline-meta">
+            Kết quả trích xuất lớp dữ liệu:
+            <b id="txtBaoCaoTenLop"></b> - Tổng số:
+            <b id="txtBaoCaoTongSo">0</b>
+          </p>
+
+          <div class="report-inline-table-wrap">
+            <table id="tableReportInline">
+              <thead id="theadReportInline"></thead>
+              <tbody id="tbodyReportInline"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+=======
+
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+    <script src="config.js?v=2"></script>
+    <script src="common.js?v=2"></script>
+
+    <script src="map-init.js?v=2"></script>
+<<<<<<< HEAD
+    <script src="shared.js?v=2"></script>
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+    <script src="layer-control.js?v=2"></script>
+    <script src="wfs-handler.js?v=2"></script>
+    <script src="search-handler.js?v=2"></script>
+
+    <script src="script.js?v=2"></script>
   </body>
 </html>

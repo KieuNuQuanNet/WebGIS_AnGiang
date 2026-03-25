@@ -6,13 +6,18 @@
     <title>Quản trị - Quản lý người dùng</title>
     <link rel="stylesheet" href="common.css" />
     <link rel="stylesheet" href="admin_users.css" />
+    <script src="config.js" defer></script>
     <script src="common.js" defer></script>
     <script src="admin_users.js" defer></script>
   </head>
 
   <body>
+    <!-- khung -->
     <div class="layout">
-      <!-- SIDEBAR -->
+<<<<<<< HEAD
+      <!-- điều hướng -->
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-title">HỆ THỐNG WEBGIS</div>
@@ -31,8 +36,12 @@
         </nav>
       </aside>
 
-      <!-- MAIN -->
+<<<<<<< HEAD
+      <!-- nội dung quản  lý người dùng -->
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       <main class="main">
+        <!-- tiêu đề tài khoản -->
         <header class="topbar">
           <h1>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</h1>
           <div class="topbar-right">
@@ -41,6 +50,7 @@
           </div>
         </header>
 
+        <!-- thống kê -->
         <section class="stats">
           <div class="card stat">
             <div class="stat-num" id="totalUsers">0</div>
@@ -53,6 +63,7 @@
           </div>
         </section>
 
+        <!-- bảng danh sách tài khoản -->
         <section class="card table-card">
           <div class="table-head">
             <h2>DANH SÁCH TÀI KHOẢN HỆ THỐNG</h2>
@@ -68,9 +79,9 @@
                   <th class="w-70">STT</th>
                   <th>HỌ VÀ TÊN</th>
                   <th>EMAIL (TÀI KHOẢN)</th>
-                  <th style="width: 200px">VAI TRÒ</th>
-                  <th style="width: 180px">TRẠNG THÁI</th>
-                  <th style="width: 180px">HÀNH ĐỘNG</th>
+                  <th class="w-200">VAI TRÒ</th>
+                  <th class="w-180">TRẠNG THÁI</th>
+                  <th class="w-180">HÀNH ĐỘNG</th>
                 </tr>
               </thead>
               <tbody id="tbodyUsers"></tbody>

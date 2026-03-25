@@ -1,5 +1,10 @@
-const api = apiJSON; // dùng từ common.js
+<<<<<<< HEAD
+// quản lý người dùng api
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+const api = apiJSON;
 
+// quản lý người dùng hiển thị
 function badgeStatus(status) {
   if (status === "hoat_dong")
     return `<span class="badge badge-ok">Hoạt động</span>`;
@@ -8,6 +13,7 @@ function badgeStatus(status) {
   return `<span class="badge badge-off">Khóa</span>`;
 }
 
+// quản lý người dùng khởi tạo
 document.addEventListener("DOMContentLoaded", async () => {
   if (!requireAdmin()) return;
 
@@ -38,49 +44,14 @@ let rolesMaster = [];
 
 const state = {
   page: 1,
-  limit: 10, // mỗi trang 10 user (đổi 20/50 tùy)
+  limit: 10,
   total: 0,
 };
 
-function getPageList(page, totalPages) {
-  // Hiện tối đa 100 trang đầu; nếu nhiều hơn thì có "..." + trang cuối
-  const maxShow = 100;
-  const showPages = Math.min(totalPages, maxShow);
-  const pages = [];
-  for (let i = 1; i <= showPages; i++) pages.push(i);
-  if (totalPages > maxShow) pages.push("...", totalPages);
-  return pages;
-}
-
-function renderPager() {
-  const pager = document.getElementById("pager");
-  if (!pager) return;
-
-  const totalPages = Math.max(1, Math.ceil(state.total / state.limit));
-  state.page = Math.min(Math.max(1, state.page), totalPages);
-
-  const pages = getPageList(state.page, totalPages);
-
-  pager.innerHTML = `
-    <button ${state.page === 1 ? "disabled" : ""} data-p="${state.page - 1}">‹</button>
-    ${pages
-      .map((p) =>
-        p === "..."
-          ? `<span class="dots">…</span>`
-          : `<button data-p="${p}" class="${p === state.page ? "active" : ""}">${p}</button>`,
-      )
-      .join("")}
-    <button ${state.page === totalPages ? "disabled" : ""} data-p="${state.page + 1}">›</button>
-  `;
-
-  pager.querySelectorAll("button[data-p]").forEach((btn) => {
-    btn.onclick = () => {
-      state.page = Number(btn.dataset.p);
-      loadData();
-    };
-  });
-}
-
+<<<<<<< HEAD
+// quản lý người dùng nạp dữ liệu
+=======
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
 async function loadData() {
   const msg = document.getElementById("msg");
   if (msg) {
@@ -89,8 +60,19 @@ async function loadData() {
   }
 
   try {
-    rolesMaster = await api("/api/admin/roles");
-    const usersAll = await api("/api/admin/users"); // vẫn lấy full
+    const allRoles = await api("/api/admin/roles");
+
+<<<<<<< HEAD
+    rolesMaster = allRoles.filter((r) =>
+      ["guest", "nguoi_dung", "can_bo", "admin"].includes(r.ma),
+    );
+
+=======
+    rolesMaster = allRoles.filter(
+      (r) => r.ma !== "nguoi_dung" && r.ma !== "khach" && r.ma !== "user",
+    );
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
+    const usersAll = await api("/api/admin/users");
 
     state.total = usersAll.length;
 
@@ -102,27 +84,35 @@ async function loadData() {
         (u) => u.trang_thai === "cho_duyet",
       ).length;
 
-    // cắt dữ liệu theo trang
     const start = (state.page - 1) * state.limit;
     const pageItems = usersAll.slice(start, start + state.limit);
 
     renderTable(pageItems);
-    renderPager();
+    renderPager(document.getElementById("pager"), {
+      page: state.page,
+      total: state.total,
+      limit: state.limit,
+      onChange: (p) => {
+        state.page = p;
+        loadData();
+      },
+    });
   } catch (e) {
     if (msg) {
       msg.className = "msg show";
-      msg.textContent = "❌ " + e.message;
+      msg.textContent = " " + e.message;
     }
   }
 }
 
+// quản lý người dùng bảng dữ liệu hiển thị và hành động
 function renderTable(users) {
   const tbody = document.getElementById("tbodyUsers");
   if (!tbody) return;
   tbody.innerHTML = "";
 
   users.forEach((u, idx) => {
-    const roleValue = u.roles && u.roles.length ? u.roles[0] : "guest";
+    const roleValue = u.roles && u.roles.length ? u.roles[0] : "can_bo";
 
     const roleOptions = rolesMaster
       .map(
@@ -149,8 +139,8 @@ function renderTable(users) {
       </td>
       <td>
         <div class="row-actions">
-          <button class="btn btn-small btnSave" data-id="${u.id}">💾 Lưu</button>
-          <button class="btn btn-small btn-danger btnDel" data-id="${u.id}">🗑 Xóa</button>
+          <button class="btn btn-small btnSave" data-id="${u.id}">Lưu</button>
+          <button class="btn btn-small btn-danger btnDel" data-id="${u.id}">Xóa</button>
         </div>
       </td>
     `;
@@ -174,9 +164,9 @@ function renderTable(users) {
           body: { trang_thai: status },
         });
         await loadData();
-        alert("✅ Đã lưu thay đổi!");
+        showToast("Đã lưu thay đổi!");
       } catch (e) {
-        alert("❌ " + e.message);
+        showToast(" " + e.message);
       } finally {
         btn.disabled = false;
       }
@@ -190,11 +180,18 @@ function renderTable(users) {
 
       btn.disabled = true;
       try {
+        // Đổi thành đường dẫn đúng:
         await api(`/api/admin/users/${id}`, { method: "DELETE" });
         await loadData();
-        alert("✅ Đã xóa!");
+<<<<<<< HEAD
+        showToast("Đã xóa tài khoản thành công!");
       } catch (e) {
-        alert("❌ " + e.message);
+        showToast("Lỗi: " + e.message, "error");
+=======
+        showToast("✅ Đã xóa tài khoản thành công!");
+      } catch (e) {
+        showToast("❌ Lỗi: " + e.message, "error");
+>>>>>>> 08fe1accd45adf68f381579099e0c7fec0a7d091
       } finally {
         btn.disabled = false;
       }
